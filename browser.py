@@ -1,5 +1,5 @@
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
 import sys
@@ -16,7 +16,7 @@ extensions = []
 
 show = False
 ver = 2
-
+tab_num = 0
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
 conn.execute('CREATE TABLE IF NOT EXISTS downloads (downloads TEXT)')
@@ -67,6 +67,7 @@ def check_update():
         pass
 
 def search_handler():
+    browser = tabs.currentWidget()
     url = search.text()
     if '://' in url:
         pass 
@@ -79,9 +80,11 @@ def search_handler():
 
 def home_handler():
     try_home()
+    browser = tabs.currentWidget()
     browser.setUrl(QUrl(homepage))
 
 def back_handler():
+    browser = tabs.currentWidget()
     browser.back()
 
 def more_handler():
@@ -119,6 +122,7 @@ def history_writer():
 
 def go_to_link(url):
     url = url.text()
+    browser = tabs.currentWidget()
     browser.setUrl(QUrl(url))
 
 def history_handler():
@@ -176,9 +180,11 @@ def downloads_handler():
     list_dl.show()
 
 def forward_handler():
+    browser = tabs.currentWidget()
     browser.forward()
 
 def refresh_handler():
+    browser = tabs.currentWidget()
     browser.reload()
 
 def extensions_loader(extension):
@@ -191,7 +197,17 @@ def extension_handler():
         ext_list.addItem(X)
     ext_list.itemClicked.connect(extensions_loader)
     ext_list.show()
-    
+
+def add_tabs_handler():
+    global tab_num
+    try_home()
+    tab_num += 1
+    tab = QWebEngineView()
+    tab.load(QUrl(homepage))
+    tabs.addTab(tab, f"tab {tab_num}")
+
+def remove_tab_handler():
+    tabs.removeTab(tabs.currentIndex())
 
 
 app = QApplication(sys.argv)
@@ -213,16 +229,25 @@ button = QPushButton('Select folder', win)
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
+tabs = QTabWidget()
 button.hide()
 
 
+if getattr(sys, 'frozen', False):
+    icon_path = join(sys._MEIPASS, 'chromium.ico')
+else:
+    icon_path = './chromium.ico'
+
 try_home()
+browser = QWebEngineView()
 browser.load(QUrl(homepage))
+home_browser = tabs.addTab(browser, 'home')
+
 upper_bar.addWidget(search)
 back = upper_bar.addAction('back')
 home = upper_bar.addAction('home')
 more = upper_bar.addAction('more')
-win.setCentralWidget(browser)
+win.setCentralWidget(tabs)
 win.addToolBar(upper_bar)
 win.addToolBar(upper_bar2)
 upper_bar2.hide()
@@ -232,6 +257,8 @@ refresh = upper_bar2.addAction('refresh')
 history = upper_bar2.addAction('history')
 settings = upper_bar2.addAction('settings')
 downloads = upper_bar2.addAction('downloads')
+add_tabs = upper_bar2.addAction('add a new tab')
+remove_tab = upper_bar2.addAction('remove current tab')
 extenions = upper_bar2.addAction('extenstions')
 
 browser.urlChanged.connect(history_writer)
@@ -247,9 +274,13 @@ downloads.triggered.connect(downloads_handler)
 forward.triggered.connect(forward_handler)
 refresh.triggered.connect(refresh_handler)
 extenions.triggered.connect(extension_handler)
+add_tabs.triggered.connect(add_tabs_handler)
+remove_tab.triggered.connect(remove_tab_handler)
 
 
 QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
-
+tabs.show()
+app.setWindowIcon(QIcon(icon_path))
+win.setWindowTitle("Py Chromium")
 win.show()
 sys.exit(app.exec_())
