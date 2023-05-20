@@ -15,7 +15,7 @@ if not exists('Pyext'):
 extensions = []
 
 show = False
-ver = 2
+ver = 3
 tab_num = 0
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
@@ -37,18 +37,29 @@ def try_path():
     except:
         path = None
 
+def try_theme():
+    global theme
+    try:
+        with open('theme.stg', 'r') as f:
+            theme = f.read()
+            if "none" in theme:
+                theme = None
+    except:
+        theme = None
+
+
 def check_extensions():
     try:
         A = os.listdir('Pyext')
         for element in A:
             if '.py' in element or '.ext' in element:
                 extensions.append(element)
-                sys.path.append(f"Pyext/{element}")
-                
+                sys.path.append(f"Pyext/{element}")        
     except:
         pass
 
 def check_update():
+    global app, win
     A = requests.post('http://moonpower007.pythonanywhere.com/script/', json={'version': ver})
     version = A.json().get('version')
     if version > ver:
@@ -58,8 +69,10 @@ def check_update():
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         result = msg.exec_()
         if result == QMessageBox.Yes:
-            wget.download('http://moonpower007.pythonanywhere.com/script/', 'main.py')
-            print('run main.py')
+            wget.download('http://moonpower007.pythonanywhere.com/script/', 'Py Chromium.exe')
+            win.hide()
+            os.startfile('Py Chromium.exe')
+            app.exit()
             exit()
         else:
             pass
@@ -74,8 +87,12 @@ def search_handler():
     elif '.io' in url or '.net' in url or '.git' in url or '.com' in url or '.org' in url:
         url = f"http://{url}"
     else:
-        query = url.replace("","+")
-        url = f"{homepage}/search?q={query}"
+        query = url.replace(" ","+")
+        with open("home.stg", "r") as f:
+            if "duckduckgo" in f.read():
+                url = f"{homepage}/?q={query}"
+            else:
+                url = f"{homepage}/search?q={query}"
     browser.setUrl(QUrl(url))
 
 def home_handler():
@@ -126,7 +143,11 @@ def go_to_link(url):
     browser.setUrl(QUrl(url))
 
 def history_handler():
-    all = conn.execute("SELECT * FROM history").fetchall()
+    try:
+        all = conn.execute("SELECT * FROM history").fetchall()
+    except:
+        conn.execute("CREATE TABLE history (history TEXT)")
+        all = conn.execute("SELECT * FROM history").fetchall()
     for previous in all:
         list.addItem(previous[0])
     list.show()
@@ -146,18 +167,53 @@ def engine_picker2():
     with open('home.stg', 'w') as f:
         f.write('https://bing.com/')
 
+def engine_picker3():
+    with open('home.stg', 'w') as f:
+        f.write('https://duckduckgo.com/')
+
+def theme_picker1():
+    with open('theme.stg', 'w') as f:
+        f.write('none')
+
+def theme_picker2():
+    with open('theme.stg', 'w') as f:
+        f.write("""
+    QWidget {
+        background-color: #2b2b2b;
+        color: #ffffff;
+    }
+    QTabBar::tab {
+        color: #2b2b2b;
+    }
+    """)
+
+def history_cleaner():
+    conn.execute("DROP TABLE IF EXISTS history")
+    conn.commit()
+
 
 def settings_handler():
     sub.setWindowTitle('Settings')
     box.addWidget(setting_info, 0, 0)
     box.addWidget(radio1, 1,0)
     box.addWidget(radio2, 1,1)
-    box.addWidget(download_info, 2,0)
-    box.addWidget(button, 3,0)
+    box.addWidget(radio3, 1,2)
+    box.addWidget(theme_info, 2,0)
+    box.addWidget(radio4, 3,0)
+    box.addWidget(radio5, 3,1)
+    box.addWidget(download_info, 4,0)
+    box.addWidget(button, 5,0)
+    box.addWidget(history_info, 6,0)
+    box.addWidget(clear_history, 7,0)
     sub.setLayout(box)
     button.clicked.connect(path_picker)
+    clear_history.clicked.connect(history_cleaner)
     radio1.clicked.connect(engine_picker1)
     radio2.clicked.connect(engine_picker2)
+    radio3.clicked.connect(engine_picker3)
+    radio4.clicked.connect(theme_picker1)
+    radio5.clicked.connect(theme_picker2)
+    clear_history.show()
     button.show()
     sub.show()
 
@@ -213,6 +269,7 @@ def remove_tab_handler():
 app = QApplication(sys.argv)
 check_update()
 check_extensions()
+try_theme()
 win = QMainWindow()
 browser = QWebEngineView()
 upper_bar = QToolBar()
@@ -223,14 +280,21 @@ sub = QWidget()
 box = QGridLayout()
 radio1 = QRadioButton('google')
 radio2 = QRadioButton('bing')
+radio3 = QRadioButton('duckduckgo')
+radio4 = QRadioButton('set light theme')
+radio5 = QRadioButton('set dark theme')
 setting_info = QLabel('Choose preferred engine')
+theme_info = QLabel('Choose preferred theme (Requires restart)')
 download_info = QLabel('Choose preferred download folder')
+history_info = QLabel('Clear search history')
 button = QPushButton('Select folder', win)
+clear_history = QPushButton('clear history', win)
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
 tabs = QTabWidget()
 button.hide()
+clear_history.hide()
 
 
 if getattr(sys, 'frozen', False):
@@ -257,7 +321,7 @@ refresh = upper_bar2.addAction('refresh')
 history = upper_bar2.addAction('history')
 settings = upper_bar2.addAction('settings')
 downloads = upper_bar2.addAction('downloads')
-add_tabs = upper_bar2.addAction('add a new tab')
+add_tabs = upper_bar2.addAction('new tab')
 remove_tab = upper_bar2.addAction('remove current tab')
 extenions = upper_bar2.addAction('extenstions')
 
@@ -282,5 +346,9 @@ QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
 tabs.show()
 app.setWindowIcon(QIcon(icon_path))
 win.setWindowTitle("Py Chromium")
+if theme == None:
+    pass 
+else:
+    app.setStyleSheet(theme)
 win.show()
 sys.exit(app.exec_())
