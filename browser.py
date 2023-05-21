@@ -15,7 +15,7 @@ if not exists('Pyext'):
 extensions = []
 
 show = False
-ver = 4
+ver = 4 #changr this to match your version
 tab_num = 0
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
@@ -60,7 +60,7 @@ def check_extensions():
 
 def check_update():
     global app, win
-    A = requests.post('http://moonpower007.pythonanywhere.com/script/', json={'version': ver})
+    A = requests.post('http://moonpower007.pythonanywhere.com/script/', json={'version': ver}) #change this to match your server
     version = A.json().get('version')
     if version > ver:
         msg = QMessageBox()
