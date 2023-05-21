@@ -15,7 +15,7 @@ if not exists('Pyext'):
 extensions = []
 
 show = False
-ver = 3
+ver = 4
 tab_num = 0
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
