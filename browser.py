@@ -89,7 +89,8 @@ def search_handler():
     else:
         query = url.replace(" ","+")
         with open("home.stg", "r") as f:
-            if "duckduckgo" in f.read():
+            home = f.read()
+            if "duckduckgo" in home:
                 url = f"{homepage}/?q={query}"
             else:
                 url = f"{homepage}/search?q={query}"
@@ -171,6 +172,10 @@ def engine_picker3():
     with open('home.stg', 'w') as f:
         f.write('https://duckduckgo.com/')
 
+def engine_picker4():
+    with open('home.stg', 'w') as f:
+        f.write('https://www.ecosia.org')
+
 def theme_picker1():
     with open('theme.stg', 'w') as f:
         f.write('none')
@@ -198,6 +203,7 @@ def settings_handler():
     box.addWidget(radio1, 1,0)
     box.addWidget(radio2, 1,1)
     box.addWidget(radio3, 1,2)
+    box.addWidget(radio_ecosia, 1,3)
     box.addWidget(theme_info, 2,0)
     box.addWidget(radio4, 3,0)
     box.addWidget(radio5, 3,1)
@@ -211,10 +217,12 @@ def settings_handler():
     radio1.clicked.connect(engine_picker1)
     radio2.clicked.connect(engine_picker2)
     radio3.clicked.connect(engine_picker3)
+    radio_ecosia.clicked.connect(engine_picker4)
     radio4.clicked.connect(theme_picker1)
     radio5.clicked.connect(theme_picker2)
     clear_history.show()
     button.show()
+    sub.setFixedSize(450,200)
     sub.show()
 
 def load_file(file):
@@ -281,10 +289,11 @@ box = QGridLayout()
 radio1 = QRadioButton('google')
 radio2 = QRadioButton('bing')
 radio3 = QRadioButton('duckduckgo')
+radio_ecosia = QRadioButton('ecosia')
 radio4 = QRadioButton('set light theme')
 radio5 = QRadioButton('set dark theme')
 setting_info = QLabel('Choose preferred engine')
-theme_info = QLabel('Choose preferred theme (Requires restart)')
+theme_info = QLabel('Choose preferred theme (Restart)')
 download_info = QLabel('Choose preferred download folder')
 history_info = QLabel('Clear search history')
 button = QPushButton('Select folder', win)
