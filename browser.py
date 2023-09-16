@@ -15,7 +15,7 @@ if not exists('Pyext'):
 extensions = []
 
 show = False
-ver = 4 #changr this to match your version
+ver = 3
 tab_num = 0
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
@@ -60,8 +60,11 @@ def check_extensions():
 
 def check_update():
     global app, win
-    A = requests.post('http://moonpower007.pythonanywhere.com/script/', json={'version': ver}) #change this to match your server
-    version = A.json().get('version')
+    try:
+        A = requests.post('http://moonpower007.pythonanywhere.com/script/', json={'version': ver})
+        version = A.json().get('version')
+    except:
+        version = 0
     if version > ver:
         msg = QMessageBox()
         msg.setWindowTitle('update handler')
@@ -88,12 +91,16 @@ def search_handler():
         url = f"http://{url}"
     else:
         query = url.replace(" ","+")
-        with open("home.stg", "r") as f:
-            home = f.read()
-            if "duckduckgo" in home:
-                url = f"{homepage}/?q={query}"
-            else:
-                url = f"{homepage}/search?q={query}"
+        try:
+            with open("home.stg", "r") as f:
+                if "duckduckgo" in f.read():
+                    url = f"{homepage}/?q={query}"
+                elif "ecosia" in f.read():
+                    url = f"{homepage}/search?q={query}"
+                else:
+                    url = f"{homepage}/search?q={query}"
+        except:
+            url = f"{homepage}/search?q={query}"
     browser.setUrl(QUrl(url))
 
 def home_handler():
@@ -107,10 +114,7 @@ def back_handler():
 
 def more_handler():
     global show
-    if show == True:
-        show = False
-    else:
-        show = True
+    show = True if show == False else False
     upper_bar2.setVisible(show)
 
 def download_handler(dl):
@@ -174,7 +178,7 @@ def engine_picker3():
 
 def engine_picker4():
     with open('home.stg', 'w') as f:
-        f.write('https://www.ecosia.org')
+        f.write('https://ecosia.org')
 
 def theme_picker1():
     with open('theme.stg', 'w') as f:
@@ -199,7 +203,14 @@ def history_cleaner():
 
 def settings_handler():
     sub.setWindowTitle('Settings')
-
+    box.addWidget(setting_info, 0, 0)
+    box.addWidget(radio1, 1,0)
+    box.addWidget(radio2, 1,1)
+    box.addWidget(radio3, 1,2)
+    box.addWidget(radio_eco, 1,3)
+    box.addWidget(theme_info, 2,0)
+    box.addWidget(radio4, 3,0)
+    box.addWidget(radio5, 3,1)
     box.addWidget(download_info, 4,0)
     box.addWidget(button, 5,0)
     box.addWidget(history_info, 6,0)
@@ -207,9 +218,14 @@ def settings_handler():
     sub.setLayout(box)
     button.clicked.connect(path_picker)
     clear_history.clicked.connect(history_cleaner)
+    radio1.clicked.connect(engine_picker1)
+    radio2.clicked.connect(engine_picker2)
+    radio3.clicked.connect(engine_picker3)
+    radio_eco.clicked.connect(engine_picker4)
+    radio4.clicked.connect(theme_picker1)
+    radio5.clicked.connect(theme_picker2)
     clear_history.show()
     button.show()
-    sub.setFixedSize(350,150)
     sub.show()
 
 def load_file(file):
@@ -273,6 +289,14 @@ search = QLineEdit()
 list = QListWidget()
 sub = QWidget()
 box = QGridLayout()
+radio1 = QRadioButton('google')
+radio2 = QRadioButton('bing')
+radio3 = QRadioButton('duckduckgo')
+radio_eco = QRadioButton('ecosia')
+radio4 = QRadioButton('set light theme')
+radio5 = QRadioButton('set dark theme')
+setting_info = QLabel('Choose preferred engine')
+theme_info = QLabel('Choose preferred theme (Requires restart)')
 download_info = QLabel('Choose preferred download folder')
 history_info = QLabel('Clear search history')
 button = QPushButton('Select folder', win)
