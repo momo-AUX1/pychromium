@@ -22,6 +22,7 @@ conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
 conn.execute('CREATE TABLE IF NOT EXISTS downloads (downloads TEXT)')
 
 def try_home():
+    #checks for your current search engine
     global homepage
     try:
         with open('home.stg', 'r') as f:
@@ -30,6 +31,7 @@ def try_home():
         homepage = "https://google.com/" 
 
 def try_path():
+    #checks for the download folder if changed
     global path
     try:
         with open('path.stg', 'r') as f:
@@ -38,6 +40,7 @@ def try_path():
         path = None
 
 def try_theme():
+    #checks if the theme is set
     global theme
     try:
         with open('theme.stg', 'r') as f:
@@ -49,6 +52,7 @@ def try_theme():
 
 
 def check_extensions():
+    #searches for extensions and saves them
     try:
         A = os.listdir('Pyext')
         for element in A:
@@ -59,6 +63,7 @@ def check_extensions():
         pass
 
 def check_update():
+    #tries to check for an update on my server (change this to your own check !!!!!)
     global app, win
     try:
         A = requests.post('http://moonpower007.pythonanywhere.com/script/', json={'version': ver})
@@ -83,6 +88,7 @@ def check_update():
         pass
 
 def search_handler():
+    #when you hit enter on the search bar this is the logic behind it.
     browser = tabs.currentWidget()
     url = search.text()
     if '://' in url:
@@ -104,20 +110,24 @@ def search_handler():
     browser.setUrl(QUrl(url))
 
 def home_handler():
+    #goes to the home page
     try_home()
     browser = tabs.currentWidget()
     browser.setUrl(QUrl(homepage))
 
 def back_handler():
+    #goes back
     browser = tabs.currentWidget()
     browser.back()
 
 def more_handler():
+    #toggles between the extended and mini help bar
     global show
     show = True if show == False else False
     upper_bar2.setVisible(show)
 
 def download_handler(dl):
+    #when a download signal is caught alerts the user if the user answer is yes download the file to their destination
     global path
     try_path()
     if path:
@@ -137,17 +147,20 @@ def download_handler(dl):
         pass
 
 def history_writer():
+    #writes to history upon any change
     current_url = browser.url().toString()
     search.setText(current_url)
     conn.execute("INSERT INTO history VALUES (?)", (current_url,))
     conn.commit()
 
 def go_to_link(url):
+    #changes the url link
     url = url.text()
     browser = tabs.currentWidget()
     browser.setUrl(QUrl(url))
 
 def history_handler():
+    #writes the history to a db. if it doesn't exist, it makes one.
     try:
         all = conn.execute("SELECT * FROM history").fetchall()
     except:
@@ -158,7 +171,9 @@ def history_handler():
     list.show()
     list.itemClicked.connect(go_to_link)
 
+
 def path_picker():
+    #downloads folder path if changed from normal
     folder_picker = QFileDialog.getExistingDirectory()
     if folder_picker:
         with open('path.stg', 'w') as f:
@@ -185,6 +200,7 @@ def theme_picker1():
         f.write('none')
 
 def theme_picker2():
+    #toggles dark mode
     with open('theme.stg', 'w') as f:
         f.write("""
     QWidget {
@@ -197,10 +213,12 @@ def theme_picker2():
     """)
 
 def history_cleaner():
+    #drops all history
     conn.execute("DROP TABLE IF EXISTS history")
     conn.commit()
 
 def CSP_handler():
+    #disbales CSP
     global csp_value
     csp_value = False
     csp_value = not csp_value
@@ -209,6 +227,7 @@ def CSP_handler():
 
 
 def settings_handler():
+    #shows the settings and it's layout
     sub.setWindowTitle('Settings')
     
     layout = QVBoxLayout()
@@ -248,6 +267,7 @@ def settings_handler():
 
 
 def load_file(file):
+    #executes a downloaded file
     try_path()
     file_path = join(path, file.text())
     try:
@@ -258,6 +278,7 @@ def load_file(file):
         msg_dl.show()
 
 def downloads_handler():
+    #shows everything you downloaded
     list_dl.clear()
     all_dl = conn.execute("SELECT * FROM downloads").fetchall()
     for dl in all_dl:
@@ -266,18 +287,22 @@ def downloads_handler():
     list_dl.show()
 
 def forward_handler():
+    #goes forward 
     browser = tabs.currentWidget()
     browser.forward()
 
 def refresh_handler():
+    #refreshes the page
     browser = tabs.currentWidget()
     browser.reload()
 
 def extensions_loader(extension):
+    #loads extensions
     with open(join("Pyext", extension.text()), "rb") as f:
         exec(f.read())
             
 def extension_handler():
+    #sets every extension as clickable then passes it to extension_loader
     ext_list.setWindowTitle("Extensions")
     for X in extensions:
         ext_list.addItem(X)
@@ -285,6 +310,7 @@ def extension_handler():
     ext_list.show()
 
 def add_tabs_handler():
+    #adds new tabs !
     global tab_num
     try_home()
     tab_num += 1
@@ -293,13 +319,22 @@ def add_tabs_handler():
     tabs.addTab(tab, f"tab {tab_num}")
 
 def remove_tab_handler():
+    #removes the current tab the user is on
     tabs.removeTab(tabs.currentIndex())
 
-
+#main app code
 app = QApplication(sys.argv)
+
+#checks for updates
 check_update()
+
+#checks for extensions
 check_extensions()
+
+#checks if the theme was set
 try_theme()
+
+
 win = QMainWindow()
 browser = QWebEngineView()
 upper_bar = QToolBar()
@@ -330,6 +365,7 @@ button.hide()
 clear_history.hide()
 
 
+#chen compiled via pyinstaller search for the icon
 if getattr(sys, 'frozen', False):
     icon_path = join(sys._MEIPASS, 'chromium.ico')
 else:
@@ -374,14 +410,24 @@ extenions.triggered.connect(extension_handler)
 add_tabs.triggered.connect(add_tabs_handler)
 remove_tab.triggered.connect(remove_tab_handler)
 
-
+#download handler
 QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
+
+#show the tabs
 tabs.show()
+
+#sets the icon
 app.setWindowIcon(QIcon(icon_path))
+
+#sets the title of the main app
 win.setWindowTitle("Py Chromium")
+
+#check the theme if exists
 if theme == None:
     pass 
 else:
     app.setStyleSheet(theme)
+
+#show the app
 win.show()
 sys.exit(app.exec_())
