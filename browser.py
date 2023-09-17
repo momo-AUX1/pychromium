@@ -1,4 +1,4 @@
-from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
@@ -200,22 +200,36 @@ def history_cleaner():
     conn.execute("DROP TABLE IF EXISTS history")
     conn.commit()
 
+def CSP_handler():
+    global csp_value
+    csp_value = False
+    csp_value = not csp_value
+    settings = browser.settings()
+    settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, csp_value)
+
 
 def settings_handler():
     sub.setWindowTitle('Settings')
-    box.addWidget(setting_info, 0, 0)
-    box.addWidget(radio1, 1,0)
-    box.addWidget(radio2, 1,1)
-    box.addWidget(radio3, 1,2)
-    box.addWidget(radio_eco, 1,3)
-    box.addWidget(theme_info, 2,0)
-    box.addWidget(radio4, 3,0)
-    box.addWidget(radio5, 3,1)
-    box.addWidget(download_info, 4,0)
-    box.addWidget(button, 5,0)
-    box.addWidget(history_info, 6,0)
-    box.addWidget(clear_history, 7,0)
-    sub.setLayout(box)
+    
+    layout = QVBoxLayout()
+    
+    layout.addWidget(setting_info)
+    layout.addWidget(radio1)
+    layout.addWidget(radio2)
+    layout.addWidget(radio3)
+    layout.addWidget(radio_eco)
+    layout.addWidget(theme_info)
+    layout.addWidget(radio4)
+    layout.addWidget(radio5)
+    layout.addWidget(download_info)
+    layout.addWidget(button)
+    layout.addWidget(history_info)
+    layout.addWidget(clear_history)
+    layout.addWidget(csp_toggle_info)
+    layout.addWidget(toggle_csp)
+    
+    sub.setLayout(layout)
+    
     button.clicked.connect(path_picker)
     clear_history.clicked.connect(history_cleaner)
     radio1.clicked.connect(engine_picker1)
@@ -224,9 +238,14 @@ def settings_handler():
     radio_eco.clicked.connect(engine_picker4)
     radio4.clicked.connect(theme_picker1)
     radio5.clicked.connect(theme_picker2)
+    toggle_csp.clicked.connect(CSP_handler)
+    
     clear_history.show()
     button.show()
+
+    sub.setFixedSize(300, 500)
     sub.show()
+
 
 def load_file(file):
     try_path()
@@ -298,9 +317,11 @@ radio5 = QRadioButton('set dark theme')
 setting_info = QLabel('Choose preferred engine')
 theme_info = QLabel('Choose preferred theme (Requires restart)')
 download_info = QLabel('Choose preferred download folder')
+csp_toggle_info = QLabel('toggle CSP on/off might fix Bing')
 history_info = QLabel('Clear search history')
 button = QPushButton('Select folder', win)
 clear_history = QPushButton('clear history', win)
+toggle_csp = QPushButton('toggle csp', win)
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
