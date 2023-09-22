@@ -30,5 +30,7 @@ pip install pyinstaller
 ```
 then you can compile it directly (roughly 4 minutes)
 ```bash
-pyinstaller --onefile --name=my_browser --add-data="chromium.ico;." simple_browser.py
+pyinstaller --onefile --name=chromium --add-data="chromium.ico;." chromium.py
 ```
+
+CAREFUL ! Pyinstaller compiles it only for the system it was ran on! for example if you compile it on windows only other windows machines will be able to run it if you do the same on mac only other mac machines will be able to run it.
