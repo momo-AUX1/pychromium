@@ -9,13 +9,15 @@ import sqlite3
 import os
 from os.path import join, exists
 
+
+#checks if the Pyext folder exists if not it makes one
 if not exists('Pyext'):
     os.makedirs('Pyext')
 
 extensions = []
 
 show = False
-ver = 6
+ver = 7
 tab_num = 0
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
@@ -93,7 +95,7 @@ def search_handler():
     url = search.text()
     if '://' in url:
         pass 
-    elif '.io' in url or '.net' in url or '.git' in url or '.com' in url or '.org' in url:
+    elif '.io' in url or '.net' in url or '.git' in url or '.com' in url or '.org' in url or "www." in url:
         url = f"http://{url}"
     else:
         query = url.replace(" ","+")
@@ -409,6 +411,12 @@ refresh.triggered.connect(refresh_handler)
 extenions.triggered.connect(extension_handler)
 add_tabs.triggered.connect(add_tabs_handler)
 remove_tab.triggered.connect(remove_tab_handler)
+
+# Inside your code after creating the browser
+browser.page().runJavaScript('''
+console.log("hello world")
+''')
+
 
 #download handler
 QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
