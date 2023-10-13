@@ -8,6 +8,7 @@ import wget
 import sqlite3
 import os
 from os.path import join, exists
+import platform
 
 
 #checks if the Pyext folder exists if not it makes one
@@ -17,7 +18,7 @@ if not exists('Pyext'):
 extensions = []
 
 show = False
-ver = 7
+ver = 8
 tab_num = 0
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
@@ -64,14 +65,22 @@ def check_extensions():
     except:
         pass
 
+def server_handler():
+    #sets the server url for the update
+    server_url = update_server.text()
+    with open("server.stg", "w") as f:
+        f.write(server_url)
+
 def check_update():
-    #tries to check for an update on my server (change this to your own check !!!!!)
+    #tries to check for an update 
     global app, win
     try:
-        A = requests.post('http://moonpower007.pythonanywhere.com/script/', json={'version': ver})
+        server = open("server.stg").read()
+        A = requests.post(server, json={'version': ver})
         version = A.json().get('version')
     except:
         version = 0
+
     if version > ver:
         msg = QMessageBox()
         msg.setWindowTitle('update handler')
@@ -79,11 +88,19 @@ def check_update():
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         result = msg.exec_()
         if result == QMessageBox.Yes:
-            wget.download('http://moonpower007.pythonanywhere.com/script/', 'Py Chromium.exe')
-            win.hide()
-            os.startfile('Py Chromium.exe')
-            app.exit()
-            exit()
+            system = platform.system()
+            if system.lower() == 'windows':
+                wget.download(server, 'Py Chromium.exe')
+                win.hide()
+                os.startfile('Py Chromium.exe')
+                app.exit()
+                exit()
+            elif system.lower() == 'darwin':
+                wget.download(server, 'Py Chromium.app')
+                win.hide()
+                os.startfile('Py Chromium.app')
+                app.exit()
+                exit()
         else:
             pass
     else:
@@ -234,6 +251,9 @@ def settings_handler():
     
     layout = QVBoxLayout()
     
+    layout.addWidget(update_server_info)
+    layout.addWidget(update_server)
+    layout.addWidget(toggle_server)
     layout.addWidget(setting_info)
     layout.addWidget(radio1)
     layout.addWidget(radio2)
@@ -260,6 +280,7 @@ def settings_handler():
     radio4.clicked.connect(theme_picker1)
     radio5.clicked.connect(theme_picker2)
     toggle_csp.clicked.connect(CSP_handler)
+    toggle_server.clicked.connect(server_handler)
     
     clear_history.show()
     button.show()
@@ -357,14 +378,17 @@ download_info = QLabel('Choose preferred download folder')
 csp_toggle_info = QLabel('toggle CSP on/off might fix Bing')
 history_info = QLabel('Clear search history')
 button = QPushButton('Select folder', win)
-clear_history = QPushButton('clear history', win)
-toggle_csp = QPushButton('toggle csp', win)
+clear_history = QPushButton('Clear history', win)
+toggle_csp = QPushButton('Toggle csp', win)
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
 tabs = QTabWidget()
 button.hide()
 clear_history.hide()
+update_server_info = QLabel('Update server (reads json for ex: {"version" : 5})')
+update_server = QLineEdit()
+toggle_server = QPushButton('set server', win)
 
 
 #chen compiled via pyinstaller search for the icon
@@ -411,11 +435,6 @@ refresh.triggered.connect(refresh_handler)
 extenions.triggered.connect(extension_handler)
 add_tabs.triggered.connect(add_tabs_handler)
 remove_tab.triggered.connect(remove_tab_handler)
-
-# Inside your code after creating the browser
-browser.page().runJavaScript('''
-console.log("hello world")
-''')
 
 
 #download handler
