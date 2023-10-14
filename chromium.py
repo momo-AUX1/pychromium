@@ -1,4 +1,5 @@
 import PyQt5
+import PyQt5.sip
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget
 from PyQt5.QtCore import QUrl
@@ -84,24 +85,40 @@ def check_update():
 
     if version > ver:
         msg = QMessageBox()
-        msg.setWindowTitle('update handler')
+        msg.setWindowTitle('Update handler')
+        msg.setIcon(QMessageBox.Question)
         msg.setText(f'version : {version} is available do you want to update?')
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         result = msg.exec_()
         if result == QMessageBox.Yes:
             system = platform.system()
             if system.lower() == 'windows':
-                wget.download(server, 'Py Chromium.exe')
-                win.hide()
-                os.startfile('Py Chromium.exe')
-                app.exit()
-                exit()
+                try:
+                    wget.download(server, 'Py-Chromium.exe')
+                    win.hide()
+                    os.startfile('Py Chromium.exe')
+                    app.exit()
+                    exit()
+                except:
+                    msg_err = QMessageBox()
+                    msg_err.setWindowTitle('Download Error')
+                    msg_err.setText('Couldn\'t download the Windows version of the app. Please ensure Py-Chromium.exe exists on the server.')
+                    msg_err.setIcon(QMessageBox.Critical)
+                    msg_err.exec_()
+
             elif system.lower() == 'darwin':
-                wget.download(server, 'Py Chromium.app')
-                win.hide()
-                os.startfile('Py Chromium.app')
-                app.exit()
-                exit()
+                try:
+                    wget.download(server, 'Py-Chromium.app')
+                    win.hide()
+                    os.startfile('Py Chromium.app')
+                    app.exit()
+                    exit()
+                except:
+                    msg_err = QMessageBox()
+                    msg_err.setWindowTitle('Download Error')
+                    msg_err.setText('Couldn\'t download the Mac version of the app. Please ensure Py-Chromium.app exists on the server.')
+                    msg_err.setIcon(QMessageBox.Critical)
+                    msg_err.exec_()
         else:
             pass
     else:
