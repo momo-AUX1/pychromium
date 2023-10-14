@@ -423,8 +423,11 @@ else:
 
 try_home()
 browser = QWebEngineView()
-browser.load(QUrl(homepage))
-home_browser = tabs.addTab(browser, 'home')
+if len(sys.argv) > 1:
+    browser.load(QUrl(sys.argv[1]))
+else:
+    browser.load(QUrl(homepage))
+home_browser = tabs.addTab(browser, 'Home')
 
 upper_bar.addWidget(search)
 back = upper_bar.addAction('back')
