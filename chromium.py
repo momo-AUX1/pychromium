@@ -1,3 +1,4 @@
+import PyQt5
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget
 from PyQt5.QtCore import QUrl
@@ -393,9 +394,15 @@ toggle_server = QPushButton('set server', win)
 
 #chen compiled via pyinstaller search for the icon
 if getattr(sys, 'frozen', False):
-    icon_path = join(sys._MEIPASS, 'chromium.ico')
+    if platform.system() == 'Darwin':
+        icon_path = join(sys._MEIPASS, 'chromium-mac.icns')
+    else:
+        icon_path = join(sys._MEIPASS, 'chromium.ico')
 else:
-    icon_path = './chromium.ico'
+    if platform.system() == 'Darwin':
+        icon_path = './chromium-mac.icns'
+    else:
+        icon_path = './chromium.ico'
 
 try_home()
 browser = QWebEngineView()
