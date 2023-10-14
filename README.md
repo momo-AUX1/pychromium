@@ -1,36 +1,69 @@
-# Simple Python Browser
-This is a basic web browser built in Python with support for loading extensions and downloading files. The code is designed to be easily readable, allowing anyone to modify and customize it according to their needs.
+# PyChromium: A Simple Extensible Browser
 
- #Installation
-To run this browser, you'll need to install the necessary libraries. You can do this using pip with the following commands:
+PyChromium is a minimalistic web browser developed in Python, designed with extensibility and simplicity in mind. It supports loading extensions, managing downloads, and basic browsing functionalities. The codebase is structured to be easily understandable and modifiable, making it a perfect starting point for those looking to build or customize their own browsers.
+
+![Browser Icon](chromium.ico)
+
+## 📦 Installation
+
+Before running PyChromium, ensure you have [Python](https://www.python.org/downloads/) installed on your system. You can install the necessary libraries individually using pip, or all at once using a `requirements.txt` file.
+
+### Individual Installation:
 
 ```bash
-Copy code
-pip install pyqt5
+pip install PyQt5
+pip install PyQtWebEngine
+pip install requests
 pip install wget
-Make sure you have Python installed on your system before running the application.
 ```
-# Usage
-Once you have installed the required libraries, you can run the browser script. The browser provides basic functionality like navigation, search, history, downloads, and settings.
+### Using `requirements.txt`:
 
-# Extensions
-The browser also supports loading extensions. You can add your own extensions to enhance the functionality of the browser.
+First, create a `requirements.txt` file with the following content:
 
-# Contributing
-Feel free to modify and customize the code to suit your preferences. This project is designed to be a starting point for building your own custom browser.
+```plaintext
+PyQt5
+PyQtWebEngine
+requests
+wget
+```
+Then, run the following command:
 
-# License
-This project is licensed under the MIT License.
+```bash
+pip install -r requirements.txt
+```
 
-# Don't want to run it on Python?
-you can compile the browser to run natively without any python runtime!
-to do so you need to install pyinstaller 
+### 🚀 Usage
+
+Once the required libraries are installed, execute the browser script to launch PyChromium. The browser encompasses basic functionalities such as navigation, search, browsing history, downloads management, and settings configuration as well as more advanced settings such as themes, custom update server and more.
+
+### 🛠️ Extensions
+
+PyChromium supports loading extensions to enhance its functionality. You can add your own extensions or modify existing ones to tailor the browser to your needs.
+
+### 🤝 Contributing
+
+Feel free to fork, modify, and customize PyChromium to suit your preferences. This project serves as a foundation for building a personalized web browser.
+
+### 📄 License
+
+PyChromium is licensed under the MIT License.
+
+### 🖥️ Standalone Application
+
+If you prefer running PyChromium as a standalone application without a Python runtime, you can compile it using PyInstaller.
+
+First, install PyInstaller:
 ```bash
 pip install pyinstaller
 ```
-then you can compile it directly (roughly 4 minutes)
+
+Then, compile PyChromium. The compilation process will take approximately 4 minutes:
 ```bash
-pyinstaller --onefile --name=chromium --add-data="chromium.ico;." chromium.py
+# MacOS & Linux
+pyinstaller --onefile --noconsole --add-data "chromium-mac.icns:." --add-data "chromium-no-bg.icns:." --add-data "chromium-old.ico:." --add-data "chromium.ico:." --icon=chromium-mac.icns chromium.py
+
+# Windows
+pyinstaller --onefile --noconsole --add-data "chromium-mac.icns;." --add-data "chromium-no-bg.icns;." --add-data "chromium-old.ico;." --add-data "chromium.ico;." --icon=chromium.ico chromium.py
 ```
 
-CAREFUL ! Pyinstaller compiles it only for the system it was ran on! for example if you compile it on windows only other windows machines will be able to run it if you do the same on mac only other mac machines will be able to run it.
+⚠️ Note: PyInstaller compiles the application for the operating system it's run on. For example, if you compile on Windows, the executable will only work on other Windows machines. And, if compiled on Mac, it will only run on other Mac machines. (Not tested on linux my gut is that it will only work on the same linux distro with the same system Arch).
