@@ -131,7 +131,7 @@ Extensions in PyChromium eallows you to supercharge the browser's functionality,
         helloDiv.style.color = "white";
         helloDiv.style.padding = "10px";
         helloDiv.style.borderRadius = "5px";
-        helloDiv.style.zIndex = "9999";  // Ensure it's on top
+        helloDiv.style.zIndex = "9999";  
         helloDiv.innerText = "Hello";
         
         document.body.appendChild(helloDiv);
