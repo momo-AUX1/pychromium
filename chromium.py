@@ -17,6 +17,28 @@ import platform
 if not exists('Pyext'):
     os.makedirs('Pyext')
 
+#checks if the Icons folder exists if not it makes one
+if not exists('Icons'):
+    os.makedirs('Icons')
+    with open('Icons/readme-icons.txt', 'w') as f:
+        f.write("""
+###### here you can custom icons that the browser can use instead of the defined ones here's a list of all the icon names that it checks for:
+          -back.png 
+          -download.png 
+          -extensions.png 
+          -forward.png 
+          -history.png 
+          -home.png 
+          -more.png 
+          -new-tab.png
+          -refresh.png 
+          -remove-tab.png 
+          -settings-old.png 
+          -settings.png  
+#the recommended icon size is 16x16px you can find some vintage icons like the one i used at this link : https://www.iconarchive.com/
+#you can also use your own icons just make sure to name them as the ones above and put them in the Icons folder
+""")
+
 extensions = []
 
 show = False
@@ -349,8 +371,8 @@ def extension_handler():
     #sets every extension as clickable and only appends them once then passes it to extension_loader
     ext_list.setWindowTitle("Extensions")
     if checked_extensions == False:
-        for X in extensions:
-            ext_list.addItem(X)
+        for extension in extensions:
+            ext_list.addItem(extension)
         checked_extensions = True
     else:
         pass
@@ -381,6 +403,25 @@ def remove_tab_handler():
 #    source_tab.setPlainText(html)
 #    tab_index = tabs.addTab(source_tab, "Source")
 #    tabs.setCurrentIndex(tab_index)
+
+def get_icon(icon_name):
+    if getattr(sys, 'frozen', False):
+        # If compiled with PyInstaller
+        bundled_icon_path = join(sys._MEIPASS, f'{icon_name}.png')
+        user_defined_icon_path = f'Icons/{icon_name}.png'
+        try:
+            # Try to load user-defined icon
+            icon = QIcon(user_defined_icon_path)
+            # If the file does not exist, Qt returns a null icon, we check for that condition.
+            if icon.isNull():
+                raise FileNotFoundError()
+            return icon
+        except (FileNotFoundError, Exception):
+            # Fall back to bundled icon
+            return QIcon(bundled_icon_path)
+    else:
+        # If not compiled, just use the user-defined icon
+        return QIcon(f'Icons/{icon_name}.png')
 
 
 #main app code
@@ -429,7 +470,7 @@ update_server = QLineEdit()
 toggle_server = QPushButton('set server', win)
 
 
-#when compiled via pyinstaller search for the icon
+#chen compiled via pyinstaller search for the icon
 if getattr(sys, 'frozen', False):
     if platform.system() == 'Darwin':
         icon_path = join(sys._MEIPASS, 'chromium-mac.icns')
@@ -450,22 +491,37 @@ else:
 home_browser = tabs.addTab(browser, 'Home')
 
 upper_bar.addWidget(search)
-back = upper_bar.addAction('back')
-home = upper_bar.addAction('home')
-more = upper_bar.addAction('more')
+
+
+back_icon = get_icon('back')
+home_icon = get_icon('home')
+more_icon = get_icon('more')
+refresh_icon = get_icon('refresh')
+forward_icon = get_icon('forward')
+settings_icon = get_icon('settings')
+new_tab_icon = get_icon('new-tab')
+remove_tab_icon = get_icon('remove-tab')
+history_icon = get_icon('history')
+extenions_icon = get_icon('extensions')
+download_icon = get_icon('download')
+
+back = upper_bar.addAction(back_icon, 'back')
+home = upper_bar.addAction(home_icon, 'home')
+more = upper_bar.addAction(more_icon, 'show/hide more')
+
 win.setCentralWidget(tabs)
 win.addToolBar(upper_bar)
 win.addToolBar(upper_bar2)
 upper_bar2.hide()
 
-forward = upper_bar2.addAction('forward')
-refresh = upper_bar2.addAction('refresh')
-history = upper_bar2.addAction('history')
-settings = upper_bar2.addAction('settings')
-downloads = upper_bar2.addAction('downloads')
-add_tabs = upper_bar2.addAction('new tab')
-remove_tab = upper_bar2.addAction('remove current tab')
-extenions = upper_bar2.addAction('extenstions')
+forward = upper_bar2.addAction(forward_icon, 'forward')
+refresh = upper_bar2.addAction(refresh_icon, 'refresh')
+history = upper_bar2.addAction(history_icon, 'history')
+settings = upper_bar2.addAction(settings_icon, 'settings')
+downloads = upper_bar2.addAction(download_icon, 'downloads')
+add_tabs = upper_bar2.addAction(new_tab_icon, 'new tab')
+remove_tab = upper_bar2.addAction(remove_tab_icon, 'remove current tab')
+extenions = upper_bar2.addAction(extenions_icon, 'extenstions')
 #view_source = upper_bar2.addAction('View Source')
 
 
