@@ -343,6 +343,7 @@ def load_file(file):
 
 def downloads_handler():
     #shows everything you downloaded
+    list_dl.setWindowTitle("Downloads")
     list_dl.clear()
     all_dl = conn.execute("SELECT * FROM downloads").fetchall()
     for dl in all_dl:
