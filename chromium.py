@@ -1,7 +1,7 @@
 import PyQt5
 import PyQt5.sip
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget, QTextEdit
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
 import sys
@@ -20,8 +20,9 @@ if not exists('Pyext'):
 extensions = []
 
 show = False
-ver = 9
+ver = 10
 tab_num = 0
+checked_extensions = False
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
 conn.execute('CREATE TABLE IF NOT EXISTS downloads (downloads TEXT)')
@@ -316,6 +317,7 @@ def load_file(file):
     except:
         msg_dl.setWindowTitle("Error")
         msg_dl.setText("the application cannot found the specified file at the specified path (the path set in settings)")
+        msg_dl.setIcon(QMessageBox.Critical)
         msg_dl.show()
 
 def downloads_handler():
@@ -343,10 +345,15 @@ def extensions_loader(extension):
         exec(f.read())
             
 def extension_handler():
-    #sets every extension as clickable then passes it to extension_loader
+    global checked_extensions
+    #sets every extension as clickable and only appends them once then passes it to extension_loader
     ext_list.setWindowTitle("Extensions")
-    for X in extensions:
-        ext_list.addItem(X)
+    if checked_extensions == False:
+        for X in extensions:
+            ext_list.addItem(X)
+        checked_extensions = True
+    else:
+        pass
     ext_list.itemClicked.connect(extensions_loader)
     ext_list.show()
 
@@ -362,6 +369,19 @@ def add_tabs_handler():
 def remove_tab_handler():
     #removes the current tab the user is on
     tabs.removeTab(tabs.currentIndex())
+
+#### VIEW SOURCE UNDER CONSTRUCTION ####
+
+#def view_source_handler():
+#    browser = tabs.currentWidget()
+#    browser.page().toHtml(view_source_callback)
+
+#def view_source_callback(html):
+#    source_tab = QTextEdit()
+#    source_tab.setPlainText(html)
+#    tab_index = tabs.addTab(source_tab, "Source")
+#    tabs.setCurrentIndex(tab_index)
+
 
 #main app code
 app = QApplication(sys.argv)
@@ -409,7 +429,7 @@ update_server = QLineEdit()
 toggle_server = QPushButton('set server', win)
 
 
-#chen compiled via pyinstaller search for the icon
+#when compiled via pyinstaller search for the icon
 if getattr(sys, 'frozen', False):
     if platform.system() == 'Darwin':
         icon_path = join(sys._MEIPASS, 'chromium-mac.icns')
@@ -446,6 +466,8 @@ downloads = upper_bar2.addAction('downloads')
 add_tabs = upper_bar2.addAction('new tab')
 remove_tab = upper_bar2.addAction('remove current tab')
 extenions = upper_bar2.addAction('extenstions')
+#view_source = upper_bar2.addAction('View Source')
+
 
 browser.urlChanged.connect(history_writer)
 search.returnPressed.connect(search_handler)
@@ -462,9 +484,12 @@ refresh.triggered.connect(refresh_handler)
 extenions.triggered.connect(extension_handler)
 add_tabs.triggered.connect(add_tabs_handler)
 remove_tab.triggered.connect(remove_tab_handler)
+#view_source.triggered.connect(view_source_handler)
 
 
-#download handler
+
+
+#Download handler
 QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
 
 #show the tabs
