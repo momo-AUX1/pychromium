@@ -42,7 +42,7 @@ if not exists('Icons'):
 extensions = []
 
 show = False
-ver = 10
+ver = 11
 tab_num = 0
 checked_extensions = False
 conn = sqlite3.connect('history.db')
