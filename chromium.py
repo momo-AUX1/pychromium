@@ -17,7 +17,6 @@ import platform
 if not exists('Pyext'):
     os.makedirs('Pyext')
 
-#checks if the Icons folder exists if not it makes one
 if not exists('Icons'):
     os.makedirs('Icons')
     with open('Icons/readme-icons.txt', 'w') as f:
@@ -405,23 +404,14 @@ def remove_tab_handler():
 #    tabs.setCurrentIndex(tab_index)
 
 def get_icon(icon_name):
-    if getattr(sys, 'frozen', False):
-        # If compiled with PyInstaller
-        bundled_icon_path = join(sys._MEIPASS, f'{icon_name}.png')
-        user_defined_icon_path = f'Icons/{icon_name}.png'
-        try:
-            # Try to load user-defined icon
-            icon = QIcon(user_defined_icon_path)
-            # If the file does not exist, Qt returns a null icon, we check for that condition.
-            if icon.isNull():
-                raise FileNotFoundError()
-            return icon
-        except (FileNotFoundError, Exception):
-            # Fall back to bundled icon
-            return QIcon(bundled_icon_path)
-    else:
-        # If not compiled, just use the user-defined icon
-        return QIcon(f'Icons/{icon_name}.png')
+    icon_path = f'Icons/{icon_name}.png'  # User-defined icon path
+    bundled_icon_path = join(sys._MEIPASS, "Icons", f'{icon_name}.png') if getattr(sys, 'frozen', False) else None  # Bundled icon path
+    
+    icon = QIcon(icon_path)  # Try to load user-defined icon
+    if icon.isNull() and bundled_icon_path:  # If user-defined icon fails to load and we are running a bundled app
+        icon = QIcon(bundled_icon_path)  # Fall back to bundled icon
+    
+    return icon
 
 
 #main app code
