@@ -70,7 +70,7 @@ pyinstaller --onefile --noconsole --add-data "chromium-mac.icns;." --add-data "c
 
 # 🌐 Extending PyChromium: Extensions Deep Dive
 
-Extensions in PyChromium empower you to supercharge the browser's functionality, allowing for a lot customization options.
+Extensions in PyChromium eallows you to supercharge the browser's functionality, allowing for a lot customization options.
 
 ### 🛠️ Capabilities of Extensions:
 
@@ -99,7 +99,7 @@ Extensions in PyChromium empower you to supercharge the browser's functionality,
     QPushButton:hover {
         background-color: #FF8C00;  
     }
-   """)  # Add your theme styles here
+   """)  
    ```
 3. 💻 Javascript Injection: Run JavaScript seamlessly on your current page:
    ```python
@@ -166,11 +166,12 @@ Extensions in PyChromium empower you to supercharge the browser's functionality,
                     ad.style.display = "none";
                 }});
             }});
-        }}, 1000);  // checks every second
+        }}, 1000);  /
     }})();"""
 
     browser.page().runJavaScript(js_code)
 
    block_ads(browser)
-  ```
+   ```
 
+Extensions gives you the power to change browser variables and call it's functions or even make new functions it's a very raw, low level access that you may use to enhance the browser, why not port your favorite extension over?
