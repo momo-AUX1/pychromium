@@ -59,11 +59,11 @@ pip install pyinstaller
 
 Then, compile PyChromium. The compilation process will take approximately 4 minutes:
 ```bash
-# macOS and Linux
-pyinstaller --onefile --noconsole --add-data "chromium-mac.icns:." --add-data "chromium-no-bg.icns:." --add-data "chromium-old.ico:." --add-data "chromium.ico:." --add-data "Icons:Icons" --icon=chromium-mac.icns chromium.py
+# For Mac/Linux
+pyinstaller --onefile --noconsole --add-data "chromium-mac.icns:." --add-data "chromium-no-bg.icns:." --add-data "chromium-old.ico:." --add-data "chromium.ico:." --add-data "Icons/back.png:Icons" --add-data "Icons/download.png:Icons" --add-data "Icons/extensions.png:Icons" --add-data "Icons/forward.png:Icons" --add-data "Icons/history.png:Icons" --add-data "Icons/home.png:Icons" --add-data "Icons/more.png:Icons" --add-data "Icons/new-tab.png:Icons" --add-data "Icons/refresh.png:Icons" --add-data "Icons/remove-tab.png:Icons" --add-data "Icons/settings.png:Icons" --add-data "Icons/settings-old.png:Icons" --icon=chromium-mac.icns chromium.py
 
-# Windows
-pyinstaller --onefile --noconsole --add-data "chromium-mac.icns;." --add-data "chromium-no-bg.icns;." --add-data "chromium-old.ico;." --add-data "chromium.ico;." --add-data "Icons;Icons" --icon=chromium.ico chromium.py
+# For Windows
+pyinstaller --onefile --noconsole --add-data "chromium-mac.icns;." --add-data "chromium-no-bg.icns;." --add-data "chromium-old.ico;." --add-data "chromium.ico;." --add-data "Icons/back.png;Icons" --add-data "Icons/download.png;Icons" --add-data "Icons/extensions.png;Icons" --add-data "Icons/forward.png;Icons" --add-data "Icons/history.png;Icons" --add-data "Icons/home.png;Icons" --add-data "Icons/more.png;Icons" --add-data "Icons/new-tab.png;Icons" --add-data "Icons/refresh.png;Icons" --add-data "Icons/remove-tab.png;Icons" --add-data "Icons/settings.png;Icons" --add-data "Icons/settings-old.png;Icons" --icon=chromium.ico chromium.py
 ```
 
 ⚠️ Note: PyInstaller compiles the application for the operating system it's run on. For example, if you compile on Windows, the executable will only work on other Windows machines. And, if compiled on Mac, it will only run on other Mac machines. (Not tested on linux my gut is that it will only work on the same linux distro with the same system Arch).
