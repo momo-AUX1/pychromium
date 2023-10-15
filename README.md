@@ -67,3 +67,110 @@ pyinstaller --onefile --noconsole --add-data "chromium-mac.icns;." --add-data "c
 ```
 
 ⚠️ Note: PyInstaller compiles the application for the operating system it's run on. For example, if you compile on Windows, the executable will only work on other Windows machines. And, if compiled on Mac, it will only run on other Mac machines. (Not tested on linux my gut is that it will only work on the same linux distro with the same system Arch).
+
+# 🌐 Extending PyChromium: Extensions Deep Dive
+
+Extensions in PyChromium empower you to supercharge the browser's functionality, allowing for a lot customization options.
+
+### 🛠️ Capabilities of Extensions:
+
+1. 🌍 Direct Browser Manipulation: You can directly interface with the browser's core. For instance, change the current URL without the need for JavaScript:
+   ```python
+   browser.load(QUrl("https://example.com"))
+   ````
+
+2. 🎨 Local Configuration Modifications: Want a fresh look or a new search engine? Extensions can directly modify local files:
+   ```python
+   with open("theme.stg", "w") as f:
+    f.write("""
+    QWidget {
+        background-color: #000000;  
+        color: #FFA500;  
+    }
+    QTabBar::tab {
+        background-color: #FFA500;  
+        color: #000000;  
+    }
+    QPushButton {
+        background-color: #FFA500;  
+        border: none;
+        border-radius: 4px;
+    }
+    QPushButton:hover {
+        background-color: #FF8C00;  
+    }
+   """)  # Add your theme styles here
+   ```
+3. 💻 Javascript Injection: Run JavaScript seamlessly on your current page:
+   ```python
+   js_code = """..."""
+   browser.page().runJavaScript(js_code)
+   ```
+
+4. 🐍 Python Program Interactions: Extensions can tap into other Python scripts or libraries, broadening the browser's capabilities.
+
+### 🚧 Considerations:
+
+🔒 Security: Always prioritize security. The depth of access means a minor oversight can introduce vulnerabilities.
+
+📝 Note: When writing extensions, your IDE might indicate that certain variables (like browser) are not declared. This is expected. Extensions are executed within the PyChromium environment where these variables are defined.
+
+### 📖 Example Extensions:
+
+1. 🔴 Red Hello Div: Add a static red div to any webpage that greets the user:
+   
+   ```python
+   def add_hello_div(browser):
+    js_code = """
+    (function() {
+        let helloDiv = document.createElement("div");
+        helloDiv.style.position = "fixed";
+        helloDiv.style.top = "10px";
+        helloDiv.style.right = "10px";
+        helloDiv.style.backgroundColor = "red";
+        helloDiv.style.color = "white";
+        helloDiv.style.padding = "10px";
+        helloDiv.style.borderRadius = "5px";
+        helloDiv.style.zIndex = "9999";  // Ensure it's on top
+        helloDiv.innerText = "Hello";
+        
+        document.body.appendChild(helloDiv);
+    })();"""
+
+    browser.page().runJavaScript(js_code)
+
+   add_hello_div(browser)
+   ```
+
+2. 🚫 Adblocker: A simple ad-blocking extension:
+   ```python
+   def block_ads(browser):
+    ad_selectors = [
+        # Common ad selectors
+        'iframe[src*="ads-iframe"]',
+        'div[id*="ad-container"]',
+        'div[class*="ad-banner"]',
+        'iframe[id*="google_ads_frame"]',
+        'ins[class*="adsbygoogle"]',
+        # Add more selectors as necessary
+    ]
+
+    selectors_string = ', '.join([f'"{selector}"' for selector in ad_selectors])
+    
+    js_code = f"""
+    (function() {{
+        const adSelectors = [{selectors_string}];
+        setInterval(() => {{
+            adSelectors.forEach(selector => {{
+                document.querySelectorAll(selector).forEach(ad => {{
+                    ad.style.display = "none";
+                }});
+            }});
+        }}, 1000);  // checks every second
+    }})();"""
+
+    browser.page().runJavaScript(js_code)
+
+   block_ads(browser)
+  ```
+
