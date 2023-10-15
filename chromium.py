@@ -404,15 +404,18 @@ def remove_tab_handler():
 #    tabs.setCurrentIndex(tab_index)
 
 def get_icon(icon_name):
-    icon_path = f'Icons/{icon_name}.png'  # User-defined icon path
-    bundled_icon_path = join(sys._MEIPASS, "Icons", f'{icon_name}.png') if getattr(sys, 'frozen', False) else None  # Bundled icon path
-    
-    icon = QIcon(icon_path)  # Try to load user-defined icon
-    if icon.isNull() and bundled_icon_path:  # If user-defined icon fails to load and we are running a bundled app
-        icon = QIcon(bundled_icon_path)  # Fall back to bundled icon
-    
-    return icon
-
+    if getattr(sys, 'frozen', False):
+        bundled_icon_path = join(sys._MEIPASS, 'Icons', f'{icon_name}.png')
+        icon = QIcon(bundled_icon_path)
+        if icon.isNull():
+            return QIcon()  
+        return icon
+    else:
+        user_defined_icon_path = f'Icons/{icon_name}.png'
+        icon = QIcon(user_defined_icon_path)
+        if icon.isNull():
+            return QIcon()  
+        return icon
 
 #main app code
 app = QApplication(sys.argv)
@@ -446,9 +449,9 @@ theme_info = QLabel('Choose preferred theme (Requires restart)')
 download_info = QLabel('Choose preferred download folder')
 csp_toggle_info = QLabel('toggle CSP on/off might fix Bing')
 history_info = QLabel('Clear search history')
-button = QPushButton('Select folder', win)
-clear_history = QPushButton('Clear history', win)
-toggle_csp = QPushButton('Toggle csp', win)
+button = QPushButton('Select folder')
+clear_history = QPushButton('Clear history')
+toggle_csp = QPushButton('Toggle csp')
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
@@ -457,7 +460,7 @@ button.hide()
 clear_history.hide()
 update_server_info = QLabel('Update server (reads json for ex: {"version" : 5})')
 update_server = QLineEdit()
-toggle_server = QPushButton('set server', win)
+toggle_server = QPushButton('set server')
 
 
 #chen compiled via pyinstaller search for the icon
