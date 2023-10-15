@@ -74,12 +74,12 @@ Extensions in PyChromium eallows you to supercharge the browser's functionality,
 
 ### 🛠️ Capabilities of Extensions:
 
-1. 🌍 Direct Browser Manipulation: You can directly interface with the browser's core. For instance, change the current URL without the need for JavaScript:
+1. 🌍 Direct Browser Manipulation: You can directly interface with the browser's core. Like change the current URL without the need for JavaScript:
    ```python
    browser.load(QUrl("https://example.com"))
    ````
 
-2. 🎨 Local Configuration Modifications: Want a fresh look or a new search engine? Extensions can directly modify local files:
+2. 🎨 Local Configuration Modifications: Extensions can directly modify local files:
    ```python
    with open("theme.stg", "w") as f:
     f.write("""
