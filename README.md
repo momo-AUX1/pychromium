@@ -146,13 +146,11 @@ Extensions in PyChromium eallows you to supercharge the browser's functionality,
    ```python
    def block_ads(browser):
     ad_selectors = [
-        # Common ad selectors
         'iframe[src*="ads-iframe"]',
         'div[id*="ad-container"]',
         'div[class*="ad-banner"]',
         'iframe[id*="google_ads_frame"]',
         'ins[class*="adsbygoogle"]',
-        # Add more selectors as necessary
     ]
 
     selectors_string = ', '.join([f'"{selector}"' for selector in ad_selectors])
