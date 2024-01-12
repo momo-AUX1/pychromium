@@ -1,9 +1,9 @@
 import PyQt5
 import PyQt5.sip
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget, QTextEdit
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget, QTextEdit, QMenu, QDialog, QTextBrowser
+from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtCore import QUrl
-from PyQt5.QtGui import QIcon
 import sys
 import requests 
 import wget
@@ -41,9 +41,18 @@ if not exists('Icons'):
 extensions = []
 
 show = False
-ver = 11
+ver = 12
 tab_num = 0
 checked_extensions = False
+
+valid_url_suffixes = [
+    '.com', '.org', '.net', '.io', '.ai', '.co', '.edu', '.gov',
+    '.uk', '.ru', '.in', '.de', '.fr', '.jp', '.nl', '.it', '.br', '.pl', '.ir',
+    '.es', '.au', '.biz', '.info', '.me', '.tv', '.cc', '.cn', '.eu', '.xyz',
+    '.site', '.online', '.us', '.ca', '.git', '.web', '.app', '.blog', '.shop',
+    '.club', '.space', '.link', '.tech', '.dev', '.wiki', '.agency', '.email',
+]
+
 conn = sqlite3.connect('history.db')
 conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
 conn.execute('CREATE TABLE IF NOT EXISTS downloads (downloads TEXT)')
@@ -147,25 +156,29 @@ def check_update():
         pass
 
 def search_handler():
-    #when you hit enter on the search bar this is the logic behind it.
+    # When you hit enter on the search bar, this is the logic behind it.
     browser = tabs.currentWidget()
-    url = search.text()
-    if '://' in url:
-        pass 
-    elif '.io' in url or '.net' in url or '.git' in url or '.com' in url or '.org' in url or "www." in url:
-        url = f"http://{url}"
+    url = search.text().strip()
+    
+    # Check if the entered text is a URL
+    if '://' in url or any(url.endswith(suffix) for suffix in valid_url_suffixes):
+        if not url.startswith(('http://', 'https://')):
+            url = f"http://{url}"  # Default to HTTP if no scheme is provided
     else:
-        query = url.replace(" ","+")
+        # Treat the entered text as a search query
+        query = url.replace(" ", "+")
         try:
             with open("home.stg", "r") as f:
-                if "duckduckgo" in f.read():
+                homepage = f.read().strip()
+                if "duckduckgo" in homepage:
                     url = f"{homepage}/?q={query}"
-                elif "ecosia" in f.read():
+                elif "ecosia" in homepage:
                     url = f"{homepage}/search?q={query}"
                 else:
                     url = f"{homepage}/search?q={query}"
         except:
             url = f"{homepage}/search?q={query}"
+
     browser.setUrl(QUrl(url))
 
 def home_handler():
@@ -184,6 +197,9 @@ def more_handler():
     global show
     show = True if show == False else False
     upper_bar2.setVisible(show)
+
+def show_more_menu():
+    file_menu.exec_(QCursor.pos())
 
 def download_handler(dl):
     #when a download signal is caught alerts the user if the user answer is yes download the file to their destination
@@ -379,18 +395,68 @@ def extension_handler():
     ext_list.itemClicked.connect(extensions_loader)
     ext_list.show()
 
-def add_tabs_handler():
-    #adds new tabs !
+def add_tabs_handler(url=None):
     global tab_num
-    try_home()
+    new_tab = QWebEngineView()
     tab_num += 1
-    tab = QWebEngineView()
-    tab.load(QUrl(homepage))
-    tabs.addTab(tab, f"tab {tab_num}")
+    new_tab_index = tabs.addTab(new_tab, f"tab {tab_num}")
+
+    # Set initial URL if provided
+    if url:
+        new_tab.setUrl(QUrl(url))
+    else:
+        new_tab.setUrl(QUrl(homepage))
+
+    # Connect the titleChanged signal
+    new_tab.titleChanged.connect(lambda title, index=new_tab_index: update_tab_title(index, title))
+
+
+def update_tab_title(tab_index, new_title):
+    if new_title:
+        tabs.setTabText(tab_index, new_title)
+
 
 def remove_tab_handler():
     #removes the current tab the user is on
     tabs.removeTab(tabs.currentIndex())
+
+def about_handler():
+    dialog = QDialog()
+    dialog.setWindowTitle("About Py Chromium")
+    dialog.setFixedSize(400, 300)
+    layout = QVBoxLayout(dialog)
+    about_text = QTextBrowser()
+    about_text.setOpenExternalLinks(False)  
+    def on_link_clicked(url):
+        browser.setUrl(url)
+        about_text.setHtml(about_text.toHtml())
+
+    about_text.anchorClicked.connect(on_link_clicked)
+    about_text.setHtml("""
+    <h1>Py Chromium</h1>
+    <p><strong>Version:</strong> 1.2.0</p>
+    <p>A lightweight web browser built with Python and PyQt.</p>
+    <p><strong>© Mohammed 2024</strong></p>
+    <p>Powered by:</p>
+    <ul>
+        <li>Python 3 - <a href="https://www.python.org/">https://www.python.org/</a></li>
+        <li>PyQt5 (Qt) - <a href="https://www.riverbankcomputing.com/software/pyqt/">https://www.riverbankcomputing.com/software/pyqt/</a></li>
+        <li>Chromium - <a href="https://www.chromium.org/">https://www.chromium.org/</a></li>
+        <li>SQLite - <a href="https://www.sqlite.org/">https://www.sqlite.org/</a></li>
+        <li>Requests - <a href="https://requests.readthedocs.io/en/master/">https://requests.readthedocs.io/en/master/</a></li>
+        <li>Wget - <a href="https://www.gnu.org/software/wget/">https://www.gnu.org/software/wget/</a></li>
+    </ul>
+    <p>All product names, logos, and brands are property of their respective owners. Use of these names, logos, and brands does not imply endorsement.</p>
+    """)
+    layout.addWidget(about_text)
+    close_button = QPushButton('Close')
+    close_button.clicked.connect(dialog.close)
+    layout.addWidget(close_button)
+    dialog.exec_()
+
+
+def close_current_tab(index):
+    tabs.removeTab(index)
 
 #### VIEW SOURCE UNDER CONSTRUCTION ####
 
@@ -457,6 +523,7 @@ list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
 tabs = QTabWidget()
+tabs.setTabsClosable(True)
 button.hide()
 clear_history.hide()
 update_server_info = QLabel('Update server (reads json for ex: {"version" : 5})')
@@ -464,7 +531,7 @@ update_server = QLineEdit()
 toggle_server = QPushButton('set server')
 
 
-#chen compiled via pyinstaller search for the icon
+#when compiled via pyinstaller search for the icon
 if getattr(sys, 'frozen', False):
     if platform.system() == 'Darwin':
         icon_path = join(sys._MEIPASS, 'chromium-mac.icns')
@@ -501,7 +568,7 @@ download_icon = get_icon('download')
 
 back = upper_bar.addAction(back_icon, 'back')
 home = upper_bar.addAction(home_icon, 'home')
-more = upper_bar.addAction(more_icon, 'show/hide more')
+more = upper_bar.addAction(more_icon, 'Show/Hide More')
 
 win.setCentralWidget(tabs)
 win.addToolBar(upper_bar)
@@ -514,8 +581,24 @@ history = upper_bar2.addAction(history_icon, 'history')
 settings = upper_bar2.addAction(settings_icon, 'settings')
 downloads = upper_bar2.addAction(download_icon, 'downloads')
 add_tabs = upper_bar2.addAction(new_tab_icon, 'new tab')
-remove_tab = upper_bar2.addAction(remove_tab_icon, 'remove current tab')
+#remove_tab = upper_bar2.addAction(remove_tab_icon, 'remove current tab')
 extenions = upper_bar2.addAction(extenions_icon, 'extenstions')
+
+
+
+file_menu = QMenu()
+file_menu.addAction('Forward', forward_handler)
+file_menu.addAction('Refresh', refresh_handler)
+file_menu.addAction('New Tab', add_tabs_handler)
+file_menu.addAction('Downloads', downloads_handler)
+file_menu.addAction('History', history_handler)
+file_menu.addAction('Settings', settings_handler)
+file_menu.addAction('Extensions', extension_handler)
+file_menu.addAction('About', about_handler) 
+file_menu.addAction('Exit', app.quit)
+
+
+
 #view_source = upper_bar2.addAction('View Source')
 
 
@@ -524,7 +607,8 @@ search.returnPressed.connect(search_handler)
 search.setStyleSheet('border-radius:7px; border:1px solid;')
 back.triggered.connect(back_handler)
 home.triggered.connect(home_handler)
-more.triggered.connect(more_handler)
+more.triggered.connect(show_more_menu)
+more.setMenu(file_menu)
 
 history.triggered.connect(history_handler)
 settings.triggered.connect(settings_handler)
@@ -533,7 +617,7 @@ forward.triggered.connect(forward_handler)
 refresh.triggered.connect(refresh_handler)
 extenions.triggered.connect(extension_handler)
 add_tabs.triggered.connect(add_tabs_handler)
-remove_tab.triggered.connect(remove_tab_handler)
+#remove_tab.triggered.connect(remove_tab_handler)
 #view_source.triggered.connect(view_source_handler)
 
 
@@ -544,7 +628,7 @@ QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
 
 #show the tabs
 tabs.show()
-
+tabs.tabCloseRequested.connect(close_current_tab)
 #sets the icon
 app.setWindowIcon(QIcon(icon_path))
 
