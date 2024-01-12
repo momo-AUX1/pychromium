@@ -44,6 +44,8 @@ show = False
 ver = 12
 tab_num = 0
 checked_extensions = False
+current_tab_index = -1  
+
 
 valid_url_suffixes = [
     '.com', '.org', '.net', '.io', '.ai', '.co', '.edu', '.gov',
@@ -415,6 +417,10 @@ def update_tab_title(tab_index, new_title):
     if new_title:
         tabs.setTabText(tab_index, new_title)
 
+def update_current_tab_index(index):
+    global current_tab_index
+    current_tab_index = index
+
 
 def remove_tab_handler():
     #removes the current tab the user is on
@@ -550,6 +556,7 @@ if len(sys.argv) > 1:
 else:
     browser.load(QUrl(homepage))
 home_browser = tabs.addTab(browser, 'Home')
+browser.titleChanged.connect(lambda title, index=home_browser: update_tab_title(index, title))
 
 upper_bar.addWidget(search)
 
@@ -629,6 +636,7 @@ QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
 #show the tabs
 tabs.show()
 tabs.tabCloseRequested.connect(close_current_tab)
+tabs.currentChanged.connect(update_current_tab_index)
 #sets the icon
 app.setWindowIcon(QIcon(icon_path))
 
