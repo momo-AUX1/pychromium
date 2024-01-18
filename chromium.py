@@ -1,7 +1,7 @@
 import PyQt5
 import PyQt5.sip
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget, QTextEdit, QMenu, QDialog, QTextBrowser
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget, QTextEdit, QMenu, QDialog, QTextBrowser, QSizePolicy
 from PyQt5.QtGui import QIcon, QCursor
 from PyQt5.QtCore import QUrl
 import sys
@@ -9,6 +9,7 @@ import requests
 import wget
 import sqlite3
 import os
+import subprocess
 from os.path import join, exists
 import platform
 
@@ -39,14 +40,10 @@ if not exists('Icons'):
 """)
 
 extensions = []
-
-show = False
-ver = 12
+ver = 13
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
-
-
 valid_url_suffixes = [
     '.com', '.org', '.net', '.io', '.ai', '.co', '.edu', '.gov',
     '.uk', '.ru', '.in', '.de', '.fr', '.jp', '.nl', '.it', '.br', '.pl', '.ir',
@@ -65,7 +62,7 @@ def try_home():
     try:
         with open('home.stg', 'r') as f:
             homepage = f.read()
-    except:
+    except FileNotFoundError:
         homepage = "https://google.com/" 
 
 def try_path():
@@ -74,7 +71,7 @@ def try_path():
     try:
         with open('path.stg', 'r') as f:
             path = f.read()
-    except:
+    except FileNotFoundError:
         path = None
 
 def try_theme():
@@ -85,7 +82,7 @@ def try_theme():
             theme = f.read()
             if "none" in theme:
                 theme = None
-    except:
+    except FileNotFoundError:
         theme = None
 
 
@@ -108,7 +105,7 @@ def server_handler():
 
 def check_update():
     #tries to check for an update 
-    global app, win
+    global app
     try:
         server = open("server.stg").read()
         A = requests.post(server, json={'version': ver})
@@ -129,9 +126,8 @@ def check_update():
                 try:
                     wget.download(server, 'Py-Chromium.exe')
                     win.hide()
-                    os.startfile('Py Chromium.exe')
+                    os.startfile('Py-Chromium.exe')
                     app.exit()
-                    exit()
                 except:
                     msg_err = QMessageBox()
                     msg_err.setWindowTitle('Download Error')
@@ -143,9 +139,9 @@ def check_update():
                 try:
                     wget.download(server, 'Py-Chromium.app')
                     win.hide()
-                    os.startfile('Py Chromium.app')
+                    opener = "open"
+                    subprocess.call([opener, 'Py-Chromium.app'])
                     app.exit()
-                    exit()
                 except:
                     msg_err = QMessageBox()
                     msg_err.setWindowTitle('Download Error')
@@ -178,7 +174,7 @@ def search_handler():
                     url = f"{homepage}/search?q={query}"
                 else:
                     url = f"{homepage}/search?q={query}"
-        except:
+        except FileNotFoundError:
             url = f"{homepage}/search?q={query}"
 
     browser.setUrl(QUrl(url))
@@ -193,12 +189,6 @@ def back_handler():
     #goes back
     browser = tabs.currentWidget()
     browser.back()
-
-def more_handler():
-    #toggles between the extended and mini help bar
-    global show
-    show = True if show == False else False
-    upper_bar2.setVisible(show)
 
 def show_more_menu():
     file_menu.exec_(QCursor.pos())
@@ -256,21 +246,10 @@ def path_picker():
         with open('path.stg', 'w') as f:
             f.write(folder_picker)
 
-def engine_picker1():
+def engine_picker(home_path):
+    #sets the search engine
     with open('home.stg', 'w') as f:
-        f.write('https://google.com/')
-
-def engine_picker2():
-    with open('home.stg', 'w') as f:
-        f.write('https://bing.com/')
-
-def engine_picker3():
-    with open('home.stg', 'w') as f:
-        f.write('https://duckduckgo.com/')
-
-def engine_picker4():
-    with open('home.stg', 'w') as f:
-        f.write('https://ecosia.org')
+        f.write(home_path)
 
 def theme_picker1():
     with open('theme.stg', 'w') as f:
@@ -294,14 +273,6 @@ def history_cleaner():
     conn.execute("DROP TABLE IF EXISTS history")
     conn.commit()
 
-def CSP_handler():
-    #disbales CSP
-    global csp_value
-    csp_value = False
-    csp_value = not csp_value
-    settings = browser.settings()
-    settings.setAttribute(QWebEngineSettings.LocalContentCanAccessRemoteUrls, csp_value)
-
 
 def settings_handler():
     #shows the settings and it's layout
@@ -324,20 +295,17 @@ def settings_handler():
     layout.addWidget(button)
     layout.addWidget(history_info)
     layout.addWidget(clear_history)
-    layout.addWidget(csp_toggle_info)
-    layout.addWidget(toggle_csp)
     
     sub.setLayout(layout)
     
     button.clicked.connect(path_picker)
     clear_history.clicked.connect(history_cleaner)
-    radio1.clicked.connect(engine_picker1)
-    radio2.clicked.connect(engine_picker2)
-    radio3.clicked.connect(engine_picker3)
-    radio_eco.clicked.connect(engine_picker4)
+    radio1.clicked.connect(lambda: engine_picker("https://google.com/"))
+    radio2.clicked.connect(lambda: engine_picker("https://bing.com/"))
+    radio3.clicked.connect(lambda: engine_picker("https://duckduckgo.com/"))
+    radio_eco.clicked.connect(lambda: engine_picker("https://ecosia.org"))
     radio4.clicked.connect(theme_picker1)
     radio5.clicked.connect(theme_picker2)
-    toggle_csp.clicked.connect(CSP_handler)
     toggle_server.clicked.connect(server_handler)
     
     clear_history.show()
@@ -352,7 +320,11 @@ def load_file(file):
     try_path()
     file_path = join(path, file.text())
     try:
-        os.startfile(file_path)
+        if sys.platform == "win32":
+            os.startfile(file_path)
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, file_path])
     except:
         msg_dl.setWindowTitle("Error")
         msg_dl.setText("the application cannot found the specified file at the specified path (the path set in settings)")
@@ -382,7 +354,20 @@ def refresh_handler():
 def extensions_loader(extension):
     #loads extensions
     with open(join("Pyext", extension.text()), "rb") as f:
-        exec(f.read())
+        content = f.read()
+    if "import os" in str(content):
+        msg = QMessageBox()
+        msg.setWindowTitle("Extension warning ")
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText(f"The file you are trying to run is not safe it contains the following code:\n\nimport os\n\nthis code can be used to run malicious code on your computer are you sure you want to run it?")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        result = msg.exec()
+        if result == QMessageBox.Yes:
+            exec(content)
+        else:
+            pass
+    else:
+        exec(content)
             
 def extension_handler():
     global checked_extensions
@@ -421,11 +406,6 @@ def update_current_tab_index(index):
     global current_tab_index
     current_tab_index = index
 
-
-def remove_tab_handler():
-    #removes the current tab the user is on
-    tabs.removeTab(tabs.currentIndex())
-
 def about_handler():
     dialog = QDialog()
     dialog.setWindowTitle("About Py Chromium")
@@ -440,20 +420,19 @@ def about_handler():
     about_text.anchorClicked.connect(on_link_clicked)
     about_text.setHtml("""
     <h1>Py Chromium</h1>
-    <p><strong>Version:</strong> 1.2.0</p>
-    <p>A lightweight web browser built with Python and PyQt.</p>
-    <p><strong>© Mohammed 2024</strong></p>
-    <p>Powered by:</p>
+    <p><strong> Version:</strong> 1.3.0</p>
+    <p>A lightweight web browser built with Python and PyQt. </p>
+    <p><strong> © Mohammed 2024</strong></p>
+    <p> Powered by:</p>
     <ul>
-        <li>Python 3 - <a href="https://www.python.org/">https://www.python.org/</a></li>
-        <li>PyQt5 (Qt) - <a href="https://www.riverbankcomputing.com/software/pyqt/">https://www.riverbankcomputing.com/software/pyqt/</a></li>
-        <li>Chromium - <a href="https://www.chromium.org/">https://www.chromium.org/</a></li>
-        <li>SQLite - <a href="https://www.sqlite.org/">https://www.sqlite.org/</a></li>
-        <li>Requests - <a href="https://requests.readthedocs.io/en/master/">https://requests.readthedocs.io/en/master/</a></li>
-        <li>Wget - <a href="https://www.gnu.org/software/wget/">https://www.gnu.org/software/wget/</a></li>
+    <li>Python 3: <a href="https://www.python.org/"> https://www.python.org/</a></li>
+    <li>PyQt5 (Qt): <a href="https://www.riverbankcomputing.com/software/pyqt/"> https://www.riverbankcomputing.com/software/pyqt/</a> </li>
+    <li>Chromium: <a href="https://www.chromium.org/">https://www.chromium.org/</a></li>
+    <li>SQLite: <a href="https://www.sqlite.org/">https://www.sqlite.org/</a></li>
+    <li>Requests: <a href="https://requests.readthedocs.io/en/master/"> https://requests.readthedocs.io/en/master/</a> </li>
+    <li>Wget: <a href="https://www.gnu.org/software/wget/"> https://www.gnu.org/software/wget/</a></li>
     </ul>
-    <p>All product names, logos, and brands are property of their respective owners. Use of these names, logos, and brands does not imply endorsement.</p>
-    """)
+    <p>All product names, logos, and brands are the property of their respective owners. The use of these names, logos, and brands does not imply endorsement. </p>""")
     layout.addWidget(about_text)
     close_button = QPushButton('Close')
     close_button.clicked.connect(dialog.close)
@@ -463,18 +442,6 @@ def about_handler():
 
 def close_current_tab(index):
     tabs.removeTab(index)
-
-#### VIEW SOURCE UNDER CONSTRUCTION ####
-
-#def view_source_handler():
-#    browser = tabs.currentWidget()
-#    browser.page().toHtml(view_source_callback)
-
-#def view_source_callback(html):
-#    source_tab = QTextEdit()
-#    source_tab.setPlainText(html)
-#    tab_index = tabs.addTab(source_tab, "Source")
-#    tabs.setCurrentIndex(tab_index)
 
 def get_icon(icon_name):
     if getattr(sys, 'frozen', False):
@@ -506,7 +473,7 @@ try_theme()
 win = QMainWindow()
 browser = QWebEngineView()
 upper_bar = QToolBar()
-upper_bar2 = QToolBar()
+upper_bar.setMovable(False)
 search = QLineEdit()
 list = QListWidget()
 sub = QWidget()
@@ -520,11 +487,9 @@ radio5 = QRadioButton('set dark theme')
 setting_info = QLabel('Choose preferred engine')
 theme_info = QLabel('Choose preferred theme (Requires restart)')
 download_info = QLabel('Choose preferred download folder')
-csp_toggle_info = QLabel('toggle CSP on/off might fix Bing')
 history_info = QLabel('Clear search history')
 button = QPushButton('Select folder')
 clear_history = QPushButton('Clear history')
-toggle_csp = QPushButton('Toggle csp')
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
@@ -558,9 +523,6 @@ else:
 home_browser = tabs.addTab(browser, 'Home')
 browser.titleChanged.connect(lambda title, index=home_browser: update_tab_title(index, title))
 
-upper_bar.addWidget(search)
-
-
 back_icon = get_icon('back')
 home_icon = get_icon('home')
 more_icon = get_icon('more')
@@ -574,28 +536,20 @@ extenions_icon = get_icon('extensions')
 download_icon = get_icon('download')
 
 back = upper_bar.addAction(back_icon, 'back')
+forward = upper_bar.addAction(forward_icon, 'forward')
+refresh = upper_bar.addAction(refresh_icon, 'refresh')
 home = upper_bar.addAction(home_icon, 'home')
+upper_bar.addWidget(search)
 more = upper_bar.addAction(more_icon, 'Show/Hide More')
+
+
 
 win.setCentralWidget(tabs)
 win.addToolBar(upper_bar)
-win.addToolBar(upper_bar2)
-upper_bar2.hide()
-
-forward = upper_bar2.addAction(forward_icon, 'forward')
-refresh = upper_bar2.addAction(refresh_icon, 'refresh')
-history = upper_bar2.addAction(history_icon, 'history')
-settings = upper_bar2.addAction(settings_icon, 'settings')
-downloads = upper_bar2.addAction(download_icon, 'downloads')
-add_tabs = upper_bar2.addAction(new_tab_icon, 'new tab')
-#remove_tab = upper_bar2.addAction(remove_tab_icon, 'remove current tab')
-extenions = upper_bar2.addAction(extenions_icon, 'extenstions')
 
 
 
 file_menu = QMenu()
-file_menu.addAction('Forward', forward_handler)
-file_menu.addAction('Refresh', refresh_handler)
 file_menu.addAction('New Tab', add_tabs_handler)
 file_menu.addAction('Downloads', downloads_handler)
 file_menu.addAction('History', history_handler)
@@ -605,30 +559,39 @@ file_menu.addAction('About', about_handler)
 file_menu.addAction('Exit', app.quit)
 
 
-
-#view_source = upper_bar2.addAction('View Source')
-
-
 browser.urlChanged.connect(history_writer)
 search.returnPressed.connect(search_handler)
-search.setStyleSheet('border-radius:7px; border:1px solid;')
+search.setStyleSheet("""
+QLineEdit{
+    font-family: \"Segoe UI\";
+    padding-top:4px;
+    padding-left:8px;
+    padding-bottom:4px;
+    border:2px solid transparent;
+    border-radius:6px;
+    font-size:15pt;
+    background-color: #ffffff;
+    selection-background-color: #66c2ff;
+    color: black;
+}
+
+QLineEdit:focus{
+    border-color:#3696ff;
+}
+
+QLineEdit:hover{
+    border-color:#d6d6d6
+}
+""")
+
 back.triggered.connect(back_handler)
 home.triggered.connect(home_handler)
 more.triggered.connect(show_more_menu)
 more.setMenu(file_menu)
 
-history.triggered.connect(history_handler)
-settings.triggered.connect(settings_handler)
-downloads.triggered.connect(downloads_handler)
 forward.triggered.connect(forward_handler)
 refresh.triggered.connect(refresh_handler)
-extenions.triggered.connect(extension_handler)
-add_tabs.triggered.connect(add_tabs_handler)
-#remove_tab.triggered.connect(remove_tab_handler)
 #view_source.triggered.connect(view_source_handler)
-
-
-
 
 #Download handler
 QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
