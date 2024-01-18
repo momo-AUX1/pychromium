@@ -1,8 +1,8 @@
 import PyQt5
 import PyQt5.sip
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QCheckBox, QPushButton, QErrorMessage, QTabWidget, QTextEdit, QMenu, QDialog, QTextBrowser, QSizePolicy
-from PyQt5.QtGui import QIcon, QCursor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QPushButton, QTabWidget, QMenu, QDialog, QTextBrowser,QShortcut
+from PyQt5.QtGui import QIcon, QCursor, QKeySequence
 from PyQt5.QtCore import QUrl
 import sys
 import requests 
@@ -72,7 +72,10 @@ def try_path():
         with open('path.stg', 'r') as f:
             path = f.read()
     except FileNotFoundError:
-        path = None
+        if os.name == 'nt': 
+            path = os.path.join(os.path.expanduser('~'), 'Downloads')
+        else:  
+            path = os.path.join(os.path.expanduser('~'), 'Downloads')
 
 def try_theme():
     #checks if the theme is set
@@ -406,6 +409,10 @@ def update_current_tab_index(index):
     global current_tab_index
     current_tab_index = index
 
+def remove_tab_handler():
+    #removes the current tab the user is on
+    tabs.removeTab(tabs.currentIndex())
+
 def about_handler():
     dialog = QDialog()
     dialog.setWindowTitle("About Py Chromium")
@@ -583,6 +590,21 @@ QLineEdit:hover{
     border-color:#d6d6d6
 }
 """)
+
+
+new_tab_shortcut = QShortcut(QKeySequence('Ctrl+T'), win)
+new_tab_shortcut.activated.connect(add_tabs_handler)
+refresh_shortcut = QShortcut(QKeySequence('Ctrl+R'), win)
+refresh_shortcut.activated.connect(refresh_handler)
+downloads_shortcut = QShortcut(QKeySequence('Ctrl+J'), win)
+downloads_shortcut.activated.connect(downloads_handler)
+history_shortcut = QShortcut(QKeySequence('Ctrl+Y' if sys.platform == "darwin" else 'Ctrl+H'), win)
+history_shortcut.activated.connect(history_handler)
+remove_tab_shortcut = QShortcut(QKeySequence("Ctrl+W"), win)
+remove_tab_shortcut.activated.connect(remove_tab_handler)
+exit_shortcut = QShortcut(QKeySequence("Ctrl+Shift+W"), win)
+exit_shortcut.activated.connect(lambda: exit())
+
 
 back.triggered.connect(back_handler)
 home.triggered.connect(home_handler)
