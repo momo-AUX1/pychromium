@@ -12,6 +12,7 @@ import os
 import subprocess
 from os.path import join, exists
 import platform
+import json
 
 
 #checks if the Pyext folder exists if not it makes one
@@ -40,7 +41,7 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 13
+ver = 14
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
@@ -50,6 +51,7 @@ valid_url_suffixes = [
     '.es', '.au', '.biz', '.info', '.me', '.tv', '.cc', '.cn', '.eu', '.xyz',
     '.site', '.online', '.us', '.ca', '.git', '.web', '.app', '.blog', '.shop',
     '.club', '.space', '.link', '.tech', '.dev', '.wiki', '.agency', '.email',
+    '.cloud'
 ]
 
 conn = sqlite3.connect('history.db')
@@ -99,6 +101,35 @@ def check_extensions():
                 sys.path.append(f"Pyext/{element}")        
     except:
         pass
+
+def scan_extensions(content):
+    if "__pychromium_metadata__" in content:
+        try:
+            extension_data = json.loads(content.split("=")[1].strip())
+            external_check = requests.post("https://nanodata.pythonanywhere.com/check", json=extension_data)
+            if external_check.json().get("status") == "approved":
+                return ("The extension is safe to run", False)
+            elif external_check.json().get("status") == "dangerous":
+                return (f"The extension is not safe to run and has been reported. Reason: {external_check.json().get('reason')}", True)
+        except:
+            pass
+    else:
+        pass
+    dangerous_extensions = ["import os", "import requests", "import base64", "import subprocess", " import sys", "import shutil", "import socket", "import urllib", "import pickle", "import importlib", "import exec", "import eval", "open", "write", "read", "remove", "import unlink", "rmdir", "mkdir", "chdir", "chmod", "chown", "chroot", "close", "connect", "accept", "bind", "import listen", "import fork", "import kill", "import popen", "import system", "import spawn", "import start", "import fork", " import pipe"]
+
+    found_extensions = [ext for ext in dangerous_extensions if ext in content]
+
+    if found_extensions:
+        warnings = []
+        for ext in found_extensions:
+            warnings.append(f"{ext}")
+        
+        warning_message = "The file you are trying to run is not safe. It contains the following potentially dangerous imports:\n\n" + "\n".join(warnings) + "\n\nThese imports can be used to run malicious code on your computer. Are you sure you want to run it?"
+        return (warning_message, True)
+    else:
+        return ("No dangerous imports found. The file appears to be safe.", False)
+
+    
 
 def server_handler():
     #sets the server url for the update
@@ -356,13 +387,14 @@ def refresh_handler():
 
 def extensions_loader(extension):
     #loads extensions
-    with open(join("Pyext", extension.text()), "rb") as f:
+    with open(join("Pyext", extension.text()), "r") as f:
         content = f.read()
-    if "import os" in str(content):
+    scan_results, dangerous = scan_extensions(content)
+    if dangerous:
         msg = QMessageBox()
-        msg.setWindowTitle("Extension warning ")
+        msg.setWindowTitle("Extension warning")
         msg.setIcon(QMessageBox.Warning)
-        msg.setText(f"The file you are trying to run is not safe it contains the following code:\n\nimport os\n\nthis code can be used to run malicious code on your computer are you sure you want to run it?")
+        msg.setText(scan_results)
         msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         result = msg.exec()
         if result == QMessageBox.Yes:
@@ -570,13 +602,12 @@ browser.urlChanged.connect(history_writer)
 search.returnPressed.connect(search_handler)
 search.setStyleSheet("""
 QLineEdit{
-    font-family: \"Segoe UI\";
-    padding-top:4px;
+    padding-top:3px;
     padding-left:8px;
-    padding-bottom:4px;
+    padding-bottom:3px;
     border:2px solid transparent;
     border-radius:6px;
-    font-size:15pt;
+    font-size:11pt;
     background-color: #ffffff;
     selection-background-color: #66c2ff;
     color: black;
@@ -622,6 +653,7 @@ QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
 tabs.show()
 tabs.tabCloseRequested.connect(close_current_tab)
 tabs.currentChanged.connect(update_current_tab_index)
+
 #sets the icon
 app.setWindowIcon(QIcon(icon_path))
 
