@@ -19,9 +19,6 @@ import tempfile
 if not exists('Pyext'):
     os.makedirs('Pyext')
 
-if not exists('temp'):
-    os.makedirs('temp')
-
 if not exists('Icons'):
     os.makedirs('Icons')
     with open('Icons/readme-icons.txt', 'w') as f:
