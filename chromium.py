@@ -67,7 +67,7 @@ def try_home():
     try:
         with open('home.stg', 'r') as f:
             homepage = f.read()
-    except FileNotFoundError:
+    except:
         homepage = "https://google.com/" 
 
 def try_path():
