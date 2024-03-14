@@ -48,7 +48,6 @@ ver = 15.2
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
-homepage = "https://google.com/" 
 valid_url_suffixes = [
     '.com', '.org', '.net', '.io', '.ai', '.co', '.edu', '.gov',
     '.uk', '.ru', '.in', '.de', '.fr', '.jp', '.nl', '.it', '.br', '.pl', '.ir',
