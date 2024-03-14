@@ -3,7 +3,7 @@ import PyQt5.sip
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QPushButton, QTabWidget, QMenu, QDialog, QTextBrowser,QShortcut
 from PyQt5.QtGui import QIcon, QCursor, QKeySequence
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, QUrlQuery
 import sys
 import requests 
 import wget
@@ -13,11 +13,14 @@ import subprocess
 from os.path import join, exists
 import platform
 import json
-
+import tempfile
 
 #checks if the Pyext folder exists if not it makes one
 if not exists('Pyext'):
     os.makedirs('Pyext')
+
+if not exists('temp'):
+    os.makedirs('temp')
 
 if not exists('Icons'):
     os.makedirs('Icons')
@@ -41,7 +44,7 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 14
+ver = 15.2
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
@@ -142,12 +145,12 @@ def check_update():
     global app
     try:
         server = open("server.stg").read()
-        A = requests.post(server, json={'version': ver})
+        A = requests.post(server, json={'version': int(ver)})
         version = A.json().get('version')
     except:
         version = 0
 
-    if version > ver:
+    if version > int(ver):
         msg = QMessageBox()
         msg.setWindowTitle('Update handler')
         msg.setIcon(QMessageBox.Question)
@@ -191,11 +194,15 @@ def search_handler():
     # When you hit enter on the search bar, this is the logic behind it.
     browser = tabs.currentWidget()
     url = search.text().strip()
+
+    if url.startswith('file:///'):
+        pass
     
     # Check if the entered text is a URL
-    if '://' in url or any(url.endswith(suffix) for suffix in valid_url_suffixes):
+    elif '://' in url or any(url.endswith(suffix) for suffix in valid_url_suffixes):
         if not url.startswith(('http://', 'https://')):
             url = f"http://{url}"  # Default to HTTP if no scheme is provided
+
     else:
         # Treat the entered text as a search query
         query = url.replace(" ", "+")
@@ -228,24 +235,112 @@ def show_more_menu():
     file_menu.exec_(QCursor.pos())
 
 def download_handler(dl):
-    #when a download signal is caught alerts the user if the user answer is yes download the file to their destination
+    # When a download signal is caught alerts the user if the user answer is yes download the file to their destination
     global path
+    file_url = dl.url().toString()
+    file_name = file_url.split('/')[-1] 
+    print(file_name)
     try_path()
     if path:
-        path = join(path, dl.path().split('/')[-1])
-        dl.setPath(path)
-    file = dl.path().split('/')[-1]
-    msg = QMessageBox()
-    msg.setWindowTitle("Download Handler")
-    msg.setText(f"are you sure you want to download {file}?")
-    msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-    result = msg.exec()
-    if result == QMessageBox.Yes:
-        dl.accept()
-        conn.execute("INSERT INTO downloads VALUES (?)",(file,))
-        conn.commit()
+        save_path = join(path, file_name)
+        dl.setPath(save_path)
+    
+    if file_name.lower().endswith('.pdf'):
+        msg = QMessageBox()
+        msg.setWindowTitle("PDF Detected")
+        msg.setText(f"Do you want to open or download the PDF: {file_name}?")
+        msg.setIcon(QMessageBox.Question)  
+        open_button = msg.addButton("Open", QMessageBox.YesRole)
+        download_button = msg.addButton("Download", QMessageBox.AcceptRole)
+        cancel_button = msg.addButton(QMessageBox.Cancel)
+        result = msg.exec_()
+
+        if msg.clickedButton() == open_button:
+            handle_pdf(file_url)
+        elif msg.clickedButton() == download_button:
+            dl.accept() 
+            conn.execute("INSERT INTO downloads VALUES (?)", (file_name,))
+            conn.commit()
+
     else:
+        msg = QMessageBox()
+        msg.setWindowTitle("Download Handler")
+        msg.setText(f"Are you sure you want to download {file_name}?")
+        msg.setIcon(QMessageBox.Question) 
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        result = msg.exec_()
+        
+        if result == QMessageBox.Yes:
+            dl.accept()
+            conn.execute("INSERT INTO downloads VALUES (?)", (file_name,))
+            conn.commit()
+
+
+
+
+def download_pdf(url):
+    try:
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            temp_pdf, temp_pdf_path = tempfile.mkstemp(suffix='.pdf')
+            os.close(temp_pdf)  
+            with open(temp_pdf_path, 'wb') as f:
+                f.write(response.content)
+
+            return temp_pdf_path
+        return None
+    except:
         pass
+
+
+
+def handle_pdf(file_url):
+    temp_pdf_path = None
+    if file_url.startswith("http"):
+        temp_pdf_path = download_pdf(file_url)
+        if temp_pdf_path is None:
+            QMessageBox.critical(None, "Download Error", "Failed to download the PDF.")
+            return
+        file_url = temp_pdf_path
+
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    pdfjs_html_path = os.path.join(base_path, 'pdfjs', 'pdfjs.html')
+    pdfjs_worker_path = os.path.join(base_path, 'pdfjs', 'pdf.worker.js')
+    images_path = os.path.join(base_path, 'pdfjs', 'images')
+    cmaps_path = os.path.join(base_path, 'pdfjs', 'cmaps')
+    if not os.path.exists(pdfjs_html_path) or not os.path.exists(pdfjs_worker_path):
+        QMessageBox.critical(None, "PDF Viewer Error", "The PDF viewer or worker file cannot be found download the file to view.")
+        return
+    
+    with open(pdfjs_html_path, 'r') as file:
+        html_content = file.read()
+    
+    modified_html_content = html_content.replace("{PDFJS_WORKER_PATH}", pdfjs_worker_path)
+    modified_html_content = modified_html_content.replace("{IMAGES_URL}", images_path)
+    modified_html_content = modified_html_content.replace("{CMAPS_URL}", cmaps_path)
+
+    temp_html_file, temp_html_path = tempfile.mkstemp(suffix='.html')
+    os.close(temp_html_file)  
+
+    with open(temp_html_path, 'w') as file:
+        file.write(modified_html_content)
+
+
+    if os.path.isfile(file_url):
+        file_url = QUrl.fromLocalFile(file_url).toString().split(":")[1]
+    viewer_url = f"file:///{temp_html_path}?file={file_url}"
+
+    new_tab = QWebEngineView()
+    new_tab.setUrl(QUrl(viewer_url))
+    tabs.addTab(new_tab, "PDF Viewer")
+
+
+
+
 
 def history_writer():
     #writes to history upon any change
@@ -457,11 +552,11 @@ def about_handler():
         about_text.setHtml(about_text.toHtml())
 
     about_text.anchorClicked.connect(on_link_clicked)
-    about_text.setHtml("""
+    about_text.setHtml(f"""
     <h1>Py Chromium</h1>
-    <p><strong> Version:</strong> 1.3.0</p>
+    <p><strong> Version:</strong> {str(float(ver))[:1]+'.'+str(float(ver)).split(str(float(ver))[:1])[1]}</p>
     <p>A lightweight web browser built with Python and PyQt. </p>
-    <p><strong> © Mohammed 2024</strong></p>
+    <p><strong> © <a href='https://github.com/momo-AUX1'>Mohammed</a> 2024</strong></p>
     <p> Powered by:</p>
     <ul>
     <li>Python 3: <a href="https://www.python.org/"> https://www.python.org/</a></li>
@@ -507,7 +602,6 @@ check_extensions()
 
 #checks if the theme was set
 try_theme()
-
 
 win = QMainWindow()
 browser = QWebEngineView()
