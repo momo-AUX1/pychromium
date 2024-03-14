@@ -287,7 +287,10 @@ def download_pdf(url):
             os.close(temp_pdf)  
             with open(temp_pdf_path, 'wb') as f:
                 f.write(response.content)
-
+            print(temp_pdf_path)
+            if platform.system().lower() == "windows":
+                temp_pdf_path = temp_pdf_path.replace("\\", "/")
+            print(temp_pdf_path)
             return temp_pdf_path
         return None
     except:
@@ -296,11 +299,12 @@ def download_pdf(url):
 
 
 def handle_pdf(file_url):
+    global viewer_url
     temp_pdf_path = None
     if file_url.startswith("http"):
         temp_pdf_path = download_pdf(file_url)
         if temp_pdf_path is None:
-            QMessageBox.critical(None, "Download Error", "Failed to download the PDF.")
+            QMessageBox.critical(None, "Download Error", "Failed to save the PDF temporarily try downloading it instead.")
             return
         file_url = temp_pdf_path
 
@@ -313,6 +317,11 @@ def handle_pdf(file_url):
     pdfjs_worker_path = os.path.join(base_path, 'pdfjs', 'pdf.worker.js')
     images_path = os.path.join(base_path, 'pdfjs', 'images')
     cmaps_path = os.path.join(base_path, 'pdfjs', 'cmaps')
+    if platform.system().lower() == "windows" :
+        pdfjs_html_path = pdfjs_html_path.replace("\\", "/")
+        pdfjs_worker_path = pdfjs_worker_path.replace("\\", "/")
+        images_path = images_path.replace("\\", "/")
+        cmaps_path = cmaps_path.replace("\\", "/")
     if not os.path.exists(pdfjs_html_path) or not os.path.exists(pdfjs_worker_path):
         QMessageBox.critical(None, "PDF Viewer Error", "The PDF viewer or worker file cannot be found download the file to view.")
         return
@@ -332,8 +341,13 @@ def handle_pdf(file_url):
 
 
     if os.path.isfile(file_url):
+        print("true")
         file_url = QUrl.fromLocalFile(file_url).toString().split(":")[1]
-    viewer_url = f"file:///{temp_html_path}?file={file_url}"
+    print(file_url)
+    print(temp_html_path)
+    viewer_url = f"file:///{temp_html_path}?file={temp_pdf_path}"
+    if platform.system().lower() == "windows":
+        viewer_url = viewer_url.replace("\\", "/")
 
     new_tab = QWebEngineView()
     new_tab.setUrl(QUrl(viewer_url))
