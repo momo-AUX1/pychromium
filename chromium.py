@@ -44,7 +44,7 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 15.2
+ver = 15.3
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
@@ -191,6 +191,7 @@ def check_update():
         pass
 
 def search_handler():
+    global homepage
     # When you hit enter on the search bar, this is the logic behind it.
     browser = tabs.currentWidget()
     url = search.text().strip()
