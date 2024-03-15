@@ -334,10 +334,8 @@ def download_pdf(url):
             os.close(temp_pdf)  
             with open(temp_pdf_path, 'wb') as f:
                 f.write(response.content)
-            print(temp_pdf_path)
             if platform.system().lower() == "windows":
                 temp_pdf_path = temp_pdf_path.replace("\\", "/")
-            print(temp_pdf_path)
             return temp_pdf_path
         return None
     except:
@@ -388,10 +386,7 @@ def handle_pdf(file_url):
 
 
     if os.path.isfile(file_url):
-        print("true")
         file_url = QUrl.fromLocalFile(file_url).toString().split(":")[1]
-    print(file_url)
-    print(temp_html_path)
     viewer_url = f"file:///{temp_html_path}?file={temp_pdf_path}"
     if platform.system().lower() == "windows":
         viewer_url = viewer_url.replace("\\", "/")
@@ -475,7 +470,6 @@ def history_importer():
             headers = next(reader, None) 
 
             headers = [h.lower() for h in headers]
-            print(headers)
 
             chrome_headers = ["url", "title", "visit time"]
             chrome_extension_header = ["order", "id", "date"]
@@ -483,19 +477,16 @@ def history_importer():
 
             if headers:
                 if headers[:3] == chrome_headers:
-                    print("Chrome headers")
                     for row in reader:
                         conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (row[1], row[0], row[2]))
                         conn.commit()
 
                 elif headers[:3] == chrome_extension_header:
-                    print("Extension header")
                     for row in reader:
                         conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (row[4], row[5], row[2]))
                         conn.commit()
                 
                 elif headers[:3] == edge_headers:
-                    print("Edge headers")
                     for row in reader:
                         edge_time = row[0] 
                         conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (row[2], row[1], edge_time))
