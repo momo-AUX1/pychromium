@@ -1,7 +1,7 @@
 import PyQt5
 import PyQt5.sip
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QPushButton, QTabWidget, QMenu, QDialog, QTextBrowser,QShortcut
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QPushButton, QTabWidget, QMenu, QDialog, QTextBrowser,QShortcut, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
 from PyQt5.QtGui import QIcon, QCursor, QKeySequence
 from PyQt5.QtCore import QUrl, QUrlQuery
 import sys
@@ -14,6 +14,8 @@ from os.path import join, exists
 import platform
 import json
 import tempfile
+import csv
+import time
 
 #checks if the Pyext folder exists if not it makes one
 if not exists('Pyext'):
@@ -41,7 +43,7 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 15.3
+ver = 15.8
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
@@ -55,8 +57,57 @@ valid_url_suffixes = [
 ]
 
 conn = sqlite3.connect('history.db')
-conn.execute('CREATE TABLE IF NOT EXISTS history (history TEXT)')
+conn.execute('''
+CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT DEFAULT '',
+        url TEXT NOT NULL,
+        visit_time TEXT DEFAULT CURRENT_TIMESTAMP,
+        visit_count INTEGER DEFAULT 1
+    )
+    ''')
 conn.execute('CREATE TABLE IF NOT EXISTS downloads (downloads TEXT)')
+
+
+def update_history_table_schema(db_path='history.db'):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT DEFAULT '',
+        url TEXT NOT NULL,
+        visit_time TEXT DEFAULT CURRENT_TIMESTAMP,
+        visit_count INTEGER DEFAULT 1
+    )
+    ''')
+    
+    try:
+        cursor.execute('SELECT title FROM history')
+    except sqlite3.OperationalError:
+        cursor.execute('ALTER TABLE history ADD COLUMN title TEXT')
+
+    try:
+        cursor.execute('SELECT url FROM history')
+    except sqlite3.OperationalError:
+        cursor.execute('ALTER TABLE history ADD COLUMN url TEXT')
+    
+    try:
+        cursor.execute('SELECT visit_time FROM history')
+    except sqlite3.OperationalError:
+        cursor.execute('ALTER TABLE history ADD COLUMN visit_time TEXT')
+    
+    try:
+        cursor.execute('SELECT visit_count FROM history')
+    except sqlite3.OperationalError:
+        cursor.execute('ALTER TABLE history ADD COLUMN visit_count INTEGER DEFAULT 1')
+    
+    conn.commit()
+    conn.close()
+
+update_history_table_schema()
+
 
 def try_home():
     #checks for your current search engine
@@ -237,7 +288,6 @@ def download_handler(dl):
     global path
     file_url = dl.url().toString()
     file_name = file_url.split('/')[-1] 
-    print(file_name)
     try_path()
     if path:
         save_path = join(path, file_name)
@@ -352,13 +402,21 @@ def handle_pdf(file_url):
 
 
 
-
-
 def history_writer():
-    #writes to history upon any change
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT DEFAULT '',
+        url TEXT NOT NULL,
+        visit_time TEXT DEFAULT CURRENT_TIMESTAMP,
+        visit_count INTEGER DEFAULT 1
+    )
+    ''')
     current_url = browser.url().toString()
+    current_title = browser.title() 
     search.setText(current_url)
-    conn.execute("INSERT INTO history VALUES (?)", (current_url,))
+    
+    conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (current_title, current_url, time.strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
 
 def go_to_link(url):
@@ -367,17 +425,106 @@ def go_to_link(url):
     browser = tabs.currentWidget()
     browser.setUrl(QUrl(url))
 
+
+def setup_history_table():
+    history_table.setSelectionBehavior(QTableWidget.SelectRows)
+    history_table.setSelectionMode(QTableWidget.SingleSelection)
+    history_table.horizontalHeader().setStretchLastSection(True)
+
+def populate_history_table():
+    # Fetch history from the database and populate the table
+    cursor = conn.cursor()
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT DEFAULT '',
+        url TEXT NOT NULL,
+        visit_time TEXT DEFAULT CURRENT_TIMESTAMP,
+        visit_count INTEGER DEFAULT 1
+    )
+    ''')
+    cursor.execute("SELECT title, url, visit_time FROM history ORDER BY visit_time DESC")
+    all_history = cursor.fetchall()
+
+    history_table.setRowCount(len(all_history))
+    for row_num, (title, url, visit_time) in enumerate(all_history):
+        history_table.setItem(row_num, 0, QTableWidgetItem(title))
+        history_table.setItem(row_num, 1, QTableWidgetItem(url))
+        history_table.setItem(row_num, 2, QTableWidgetItem(visit_time))
+
 def history_handler():
-    #writes the history to a db. if it doesn't exist, it makes one.
-    try:
-        all = conn.execute("SELECT * FROM history").fetchall()
-    except:
-        conn.execute("CREATE TABLE history (history TEXT)")
-        all = conn.execute("SELECT * FROM history").fetchall()
-    for previous in all:
-        list.addItem(previous[0])
-    list.show()
-    list.itemClicked.connect(go_to_link)
+    # Refresh history view
+    populate_history_table()
+    history_table.show()
+
+def history_importer():
+    # imports history from a csv file
+    file = QFileDialog.getOpenFileName()
+    if file[0]:
+        conn.execute('''
+        CREATE TABLE IF NOT EXISTS history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT DEFAULT '',
+        url TEXT NOT NULL,
+        visit_time TEXT DEFAULT CURRENT_TIMESTAMP,
+        visit_count INTEGER DEFAULT 1
+        )
+        ''')
+        with open(file[0], 'r', newline='', encoding='utf-8-sig') as f:
+            reader = csv.reader(f)
+            headers = next(reader, None) 
+
+            headers = [h.lower() for h in headers]
+            print(headers)
+
+            chrome_headers = ["url", "title", "visit time"]
+            chrome_extension_header = ["order", "id", "date"]
+            edge_headers = ["datetime", "navigatedtourl", "pagetitle"]
+
+            if headers:
+                if headers[:3] == chrome_headers:
+                    print("Chrome headers")
+                    for row in reader:
+                        conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (row[1], row[0], row[2]))
+                        conn.commit()
+
+                elif headers[:3] == chrome_extension_header:
+                    print("Extension header")
+                    for row in reader:
+                        conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (row[4], row[5], row[2]))
+                        conn.commit()
+                
+                elif headers[:3] == edge_headers:
+                    print("Edge headers")
+                    for row in reader:
+                        edge_time = row[0] 
+                        conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (row[2], row[1], edge_time))
+                        conn.commit()
+                else:
+                    response = QMessageBox.warning(
+                        None,
+                        "Unknown CSV Format",
+                        "The format of this CSV does not match known formats for Chrome or Edge. Do you want to continue anyway?",
+                        QMessageBox.Yes | QMessageBox.No
+                    )
+                    if response == QMessageBox.Yes:
+                        for row in reader:
+                            conn.execute("INSERT INTO history (title, url, visit_time) VALUES (?, ?, ?)", (row[0], row[1], row[2]))
+                            conn.commit()
+
+
+def history_exporter():
+    # Exports history to a CSV file
+    file = QFileDialog.getSaveFileName(filter="CSV Files (*.csv)")
+    if file[0]:
+        with open(file[0], 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerow(['URL', 'Title', 'Visit Time']) 
+            cursor = conn.execute("SELECT url, title, visit_time FROM history")
+            for row in cursor:
+                writer.writerow(row)
+
+
 
 
 def path_picker():
@@ -420,6 +567,7 @@ def settings_handler():
     sub.setWindowTitle('Settings')
     
     layout = QVBoxLayout()
+    history_layout = QHBoxLayout()
     
     layout.addWidget(update_server_info)
     layout.addWidget(update_server)
@@ -436,6 +584,9 @@ def settings_handler():
     layout.addWidget(button)
     layout.addWidget(history_info)
     layout.addWidget(clear_history)
+    history_layout.addWidget(history_import)
+    history_layout.addWidget(history_export)
+    layout.addLayout(history_layout)
     
     sub.setLayout(layout)
     
@@ -448,6 +599,8 @@ def settings_handler():
     radio4.clicked.connect(theme_picker1)
     radio5.clicked.connect(theme_picker2)
     toggle_server.clicked.connect(server_handler)
+    history_import.clicked.connect(history_importer)
+    history_export.clicked.connect(history_exporter)
     
     clear_history.show()
     button.show()
@@ -476,9 +629,15 @@ def downloads_handler():
     #shows everything you downloaded
     list_dl.setWindowTitle("Downloads")
     list_dl.clear()
-    all_dl = conn.execute("SELECT * FROM downloads").fetchall()
-    for dl in all_dl:
-        list_dl.addItem(dl[0])
+    try:
+        all_dl = conn.execute("SELECT * FROM downloads").fetchall()
+        for dl in all_dl:
+            list_dl.addItem(dl[0])
+    except:
+        conn.execute("CREATE TABLE downloads (downloads TEXT)")
+        all_dl = conn.execute("SELECT * FROM downloads").fetchall()
+        for dl in all_dl:
+            list_dl.addItem(dl[0])
     list_dl.itemClicked.connect(load_file)
     list_dl.show()
 
@@ -530,13 +689,11 @@ def add_tabs_handler(url=None):
     tab_num += 1
     new_tab_index = tabs.addTab(new_tab, f"tab {tab_num}")
 
-    # Set initial URL if provided
     if url:
         new_tab.setUrl(QUrl(url))
     else:
         new_tab.setUrl(QUrl(homepage))
 
-    # Connect the titleChanged signal
     new_tab.titleChanged.connect(lambda title, index=new_tab_index: update_tab_title(index, title))
 
 
@@ -577,6 +734,8 @@ def about_handler():
     <li>SQLite: <a href="https://www.sqlite.org/">https://www.sqlite.org/</a></li>
     <li>Requests: <a href="https://requests.readthedocs.io/en/master/"> https://requests.readthedocs.io/en/master/</a> </li>
     <li>Wget: <a href="https://www.gnu.org/software/wget/"> https://www.gnu.org/software/wget/</a></li>
+    <li>Pyinstaller: <a href="https://www.pyinstaller.org/"> https://www.pyinstaller.org/</a></li>
+    <li>PDFjs: <a href="https://mozilla.github.io/pdf.js/"> https://mozilla.github.io/pdf.js/</a></li>
     </ul>
     <p>All product names, logos, and brands are the property of their respective owners. The use of these names, logos, and brands does not imply endorsement. </p>""")
     layout.addWidget(about_text)
@@ -620,7 +779,13 @@ browser = QWebEngineView()
 upper_bar = QToolBar()
 upper_bar.setMovable(False)
 search = QLineEdit()
-list = QListWidget()
+history_table = QTableWidget()
+history_table.setColumnCount(3) 
+history_table.setHorizontalHeaderLabels(['Title', 'URL', 'Visited On'])
+history_table.setEditTriggers(QTableWidget.NoEditTriggers)
+header = history_table.horizontalHeader()
+header.setSectionResizeMode(QHeaderView.Stretch)
+history_table.setMinimumSize(650, 450)
 sub = QWidget()
 box = QGridLayout()
 radio1 = QRadioButton('google')
@@ -632,9 +797,11 @@ radio5 = QRadioButton('set dark theme')
 setting_info = QLabel('Choose preferred engine')
 theme_info = QLabel('Choose preferred theme (Requires restart)')
 download_info = QLabel('Choose preferred download folder')
-history_info = QLabel('Clear search history')
 button = QPushButton('Select folder')
 clear_history = QPushButton('Clear history')
+history_info = QLabel('Manage history')
+history_import = QPushButton('Import')
+history_export = QPushButton('Export')
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
@@ -688,10 +855,8 @@ upper_bar.addWidget(search)
 more = upper_bar.addAction(more_icon, 'Show/Hide More')
 
 
-
 win.setCentralWidget(tabs)
 win.addToolBar(upper_bar)
-
 
 
 file_menu = QMenu()
