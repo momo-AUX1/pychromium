@@ -43,7 +43,7 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 15.8
+ver = 15.9
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
@@ -347,11 +347,16 @@ def handle_pdf(file_url):
     global viewer_url
     temp_pdf_path = None
     if file_url.startswith("http"):
+        print("acted here")
         temp_pdf_path = download_pdf(file_url)
         if temp_pdf_path is None:
             QMessageBox.critical(None, "Download Error", "Failed to save the PDF temporarily try downloading it instead.")
             return
         file_url = temp_pdf_path
+    elif file_url.startswith("file:///"):
+        temp_pdf_path = file_url
+    
+
 
     if getattr(sys, 'frozen', False):
         base_path = sys._MEIPASS
