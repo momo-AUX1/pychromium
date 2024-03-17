@@ -1,4 +1,6 @@
 PyQt5
+PyQt6
 PyQtWebEngine
+PyQt6-WebEngine
 requests
 wget
