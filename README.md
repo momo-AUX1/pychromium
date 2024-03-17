@@ -12,7 +12,9 @@ Before running PyChromium, ensure you have [Python](https://www.python.org/downl
 
 ```bash
 pip install PyQt5
+pip install PyQt6
 pip install PyQtWebEngine
+pip install PyQt6-WebEngine
 pip install requests
 pip install wget
 ```
@@ -22,7 +24,9 @@ First, create a `requirements.txt` file with the following content:
 
 ```plaintext
 PyQt5
+PyQt6
 PyQtWebEngine
+PyQt6-WebEngine
 requests
 wget
 ```
