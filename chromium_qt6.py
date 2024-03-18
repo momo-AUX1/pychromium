@@ -1,3 +1,4 @@
+import PyQt6.QtWebEngineCore
 import PyQt6.sip
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QPushButton, QTabWidget, QMenu, QDialog, QTextBrowser, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
 from PyQt6.QtGui import QIcon, QCursor, QKeySequence, QShortcut
@@ -50,7 +51,7 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 20.0
+ver = 21.0
 tab_num = 0
 checked_extensions = False
 current_tab_index = -1  
@@ -752,6 +753,38 @@ def about_handler():
     layout.addWidget(close_button)
     dialog.exec()
 
+def feature_to_string(feature):
+    feature_map = {
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "access to your microphone",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaVideoCapture: "access to your camera",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioVideoCapture: "access to your microphone and camera",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Notifications: "send notifications",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Geolocation: "access your location",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "access your microphone",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaVideoCapture: "access your camera",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioVideoCapture: "access both your microphone and camera",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MouseLock: "lock your mouse cursor",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.DesktopVideoCapture: "capture video from your desktop",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.DesktopAudioVideoCapture: "capture audio and video from your desktop",
+    }
+    return feature_map.get(feature, "this feature")
+
+def permissions_handler(url, feature):
+    current_tab = tabs.currentWidget() 
+    page_title = current_tab.title()  
+
+    feature_description = feature_to_string(feature)
+    user_response = QMessageBox.question(None, 
+                                         "Permission Request", 
+                                         f"Are you sure you want {page_title} to have {feature_description}?", 
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
+                                         QMessageBox.StandardButton.No)
+
+    if user_response == QMessageBox.StandardButton.Yes:
+        current_tab.page().setFeaturePermission(url, feature,  PyQt6.QtWebEngineCore.QWebEnginePage.PermissionPolicy.PermissionGrantedByUser)
+    else:
+        current_tab.page().setFeaturePermission(url, feature,  PyQt6.QtWebEngineCore.QWebEnginePage.PermissionPolicy.PermissionDeniedByUser)
+
 
 def close_current_tab(index):
     tabs.removeTab(index)
@@ -927,6 +960,12 @@ refresh.triggered.connect(refresh_handler)
 
 #Download handler
 QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
+
+#Permissions handler
+browser.page().featurePermissionRequested.connect(permissions_handler)
+
+QWebEngineProfile.defaultProfile().settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, True)
+
 
 #show the tabs
 tabs.show()
