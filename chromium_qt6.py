@@ -754,18 +754,19 @@ def about_handler():
     dialog.exec()
 
 def feature_to_string(feature):
+    macos_warn = "You are on Macos, make sure to give pychromium or python the appropraite permissions in the system settings" if platform.system().lower() == 'darwin' else ''
     feature_map = {
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "have access to your microphone",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaVideoCapture: "have access to your camera",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioVideoCapture: "have access to your microphone and camera",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Notifications: "send notifications",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Geolocation: "access your location",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "access your microphone",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaVideoCapture: "access your camera",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioVideoCapture: "access both your microphone and camera",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MouseLock: "lock your mouse cursor",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.DesktopVideoCapture: "capture video from your desktop",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.DesktopAudioVideoCapture: "capture audio and video from your desktop",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "have access to your microphone?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaVideoCapture: "have access to your camera?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioVideoCapture: "have access to your microphone and camera?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Notifications: f"send notifications? {macos_warn}",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Geolocation: f"access your location? {macos_warn}",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "access your microphone?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaVideoCapture: "access your camera?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioVideoCapture: "access both your microphone and camera?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MouseLock: "lock your mouse cursor?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.DesktopVideoCapture: "capture video from your desktop?",
+        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.DesktopAudioVideoCapture: "capture audio and video from your desktop?",
     }
     return feature_map.get(feature, "this feature")
 
@@ -776,7 +777,7 @@ def permissions_handler(url, feature):
     feature_description = feature_to_string(feature)
     user_response = QMessageBox.question(None, 
                                          "Permission Request", 
-                                         f"Are you sure you want {page_title} to {feature_description}?", 
+                                         f"Are you sure you want {page_title} to {feature_description}", 
                                          QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, 
                                          QMessageBox.StandardButton.No)
 
