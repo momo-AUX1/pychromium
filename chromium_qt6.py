@@ -1,5 +1,6 @@
 import PyQt6.QtWebEngineCore
 import PyQt6.sip
+from PyQt6.QtCore import QDir
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QPushButton, QTabWidget, QMenu, QDialog, QTextBrowser, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
 from PyQt6.QtGui import QIcon, QCursor, QKeySequence, QShortcut
 from PyQt6.QtCore import QUrl, QUrlQuery
@@ -7,6 +8,7 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineProfile, QWebEngineSettings
 from PyQt6.QtWidgets import QAbstractItemView
 from PyQt6.QtWidgets import QHeaderView
+from PyQt6.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 QtWebEngineWidgets = PyQt6.QtWebEngineWidgets
 QtWidgets = PyQt6.QtWidgets
 QtGui = PyQt6.QtGui
@@ -23,7 +25,6 @@ import json
 import tempfile
 import csv
 import time
-from PyQt6.QtCore import QDir
 
 #checks if the Pyext folder exists if not it makes one
 if not exists('Pyext'):
@@ -51,9 +52,10 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 21.0
+ver = 22.0
 tab_num = 0
 checked_extensions = False
+legacy_pdf_viewer = False
 current_tab_index = -1  
 valid_url_suffixes = [
     '.com', '.org', '.net', '.io', '.ai', '.co', '.edu', '.gov',
@@ -211,9 +213,9 @@ def check_update():
         msg.setWindowTitle('Update handler')
         msg.setIcon(QMessageBox.Icon.Question)
         msg.setText(f'version : {version} is available do you want to update?')
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
         result = msg.exec()
-        if result == QMessageBox.Yes:
+        if result == QMessageBox.StandardButton.Yes:
             system = platform.system()
             if system.lower() == 'windows':
                 try:
@@ -313,12 +315,12 @@ def download_handler(dl):
         msg.setWindowTitle("PDF Detected")
         msg.setText(f"Do you want to open or download the PDF: {file_name}?")
         msg.setIcon(QMessageBox.Icon.Question)  
-        open_button = msg.addButton("Open", QMessageBox.ButtonRole.YesRole)
+        open_button = msg.addButton("Open", QMessageBox.ButtonRole.YesRole) if legacy_pdf_viewer else None
         download_button = msg.addButton("Download", QMessageBox.ButtonRole.AcceptRole)
         cancel_button = msg.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)  
         result = msg.exec()
 
-        if msg.clickedButton() == open_button:
+        if legacy_pdf_viewer and msg.clickedButton() == open_button:
             handle_pdf(file_url)
         elif msg.clickedButton() == download_button:
             dl.accept() 
@@ -358,6 +360,7 @@ def download_pdf(url):
 
 
 def handle_pdf(file_url):
+    #Potentially replaced by the native PDF viewer with chrome can always be re-enabled if needed.
     global viewer_url
     temp_pdf_path = None
     if file_url.startswith("http"):
@@ -370,11 +373,7 @@ def handle_pdf(file_url):
         temp_pdf_path = file_url
     
 
-
-    if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
-    else:
-        base_path = os.path.dirname(os.path.abspath(__file__))
+    base_path = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
 
     pdfjs_html_path = os.path.join(base_path, 'pdfjs', 'pdfjs.html')
     pdfjs_worker_path = os.path.join(base_path, 'pdfjs', 'pdf.worker.js')
@@ -416,6 +415,7 @@ def handle_pdf(file_url):
 
 
 def history_writer():
+    global tabs
     conn.execute('''
         CREATE TABLE IF NOT EXISTS history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -462,7 +462,11 @@ def populate_history_table():
     history_table.setRowCount(len(all_history))
     for row_num, (title, url, visit_time) in enumerate(all_history):
         history_table.setItem(row_num, 0, QTableWidgetItem(title))
-        history_table.setItem(row_num, 1, QTableWidgetItem(url))
+        url_item = QTableWidgetItem(url)
+        url_item.setFlags(url_item.flags() | QtCore.Qt.ItemFlag.ItemIsSelectable | QtCore.Qt.ItemFlag.ItemIsEnabled)
+        url_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        history_table.setItem(row_num, 1, url_item)
+        history_table.itemClicked.connect(lambda item: go_to_link(item))
         history_table.setItem(row_num, 2, QTableWidgetItem(visit_time))
 
 def history_handler():
@@ -535,7 +539,6 @@ def history_exporter():
 
 
 
-
 def path_picker():
     #downloads folder path if changed from normal
     folder_picker = QFileDialog.getExistingDirectory()
@@ -591,6 +594,8 @@ def settings_handler():
     layout.addWidget(radio5)
     layout.addWidget(download_info)
     layout.addWidget(button)
+    #layout.addWidget(legacy_experimental_info)
+    #layout.addWidget(legacy_pdf_viewer_button)
     layout.addWidget(history_info)
     layout.addWidget(clear_history)
     history_layout.addWidget(history_import)
@@ -610,6 +615,7 @@ def settings_handler():
     toggle_server.clicked.connect(server_handler)
     history_import.clicked.connect(history_importer)
     history_export.clicked.connect(history_exporter)
+    legacy_pdf_viewer_button.clicked.connect(lambda: not legacy_pdf_viewer)
     
     clear_history.show()
     button.show()
@@ -623,7 +629,7 @@ def load_file(file):
     try_path()
     file_path = join(path, file.text())
     try:
-        if sys.platform == "win32":
+        if platform.system().lower() == 'windows':
             os.startfile(file_path)
         else:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
@@ -631,7 +637,7 @@ def load_file(file):
     except:
         msg_dl.setWindowTitle("Error")
         msg_dl.setText("the application cannot found the specified file at the specified path (the path set in settings)")
-        msg_dl.setIcon(QMessageBox.Critical)
+        msg_dl.setIcon(QMessageBox.Icon.Critical)
         msg_dl.show()
 
 def downloads_handler():
@@ -668,11 +674,11 @@ def extensions_loader(extension):
     if dangerous:
         msg = QMessageBox()
         msg.setWindowTitle("Extension warning")
-        msg.setIcon(QMessageBox.Warning)
+        msg.setIcon(QMessageBox.Icon.Warning)
         msg.setText(scan_results)
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        msg.setStandardButtons(QMessageBox.StandardButton.No| QMessageBox.StandardButton.Yes)
         result = msg.exec()
-        if result == QMessageBox.Yes:
+        if result == QMessageBox.StandardButton.Yes:
             exec(content)
         else:
             pass
@@ -696,6 +702,8 @@ def add_tabs_handler(url=None):
     global tab_num
     new_tab = QWebEngineView()
     tab_num += 1
+    new_tab.page().featurePermissionRequested.connect(permissions_handler)
+    #new_tab.page().titleChanged.connect(lambda title, index=home_browser: update_tab_title(index, title))
     new_tab_index = tabs.addTab(new_tab, f"tab {tab_num}")
 
     if url:
@@ -754,11 +762,8 @@ def about_handler():
     dialog.exec()
 
 def feature_to_string(feature):
-    macos_warn = "You are on Macos, make sure to give pychromium or python the appropraite permissions in the system settings" if platform.system().lower() == 'darwin' else ''
+    macos_warn = "\n\nYou are on Macos, make sure to give pychromium or python the appropraite permissions in the system settings" if platform.system().lower() == 'darwin' else ''
     feature_map = {
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "have access to your microphone?",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaVideoCapture: "have access to your camera?",
-        PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioVideoCapture: "have access to your microphone and camera?",
         PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Notifications: f"send notifications? {macos_warn}",
         PyQt6.QtWebEngineCore.QWebEnginePage.Feature.Geolocation: f"access your location? {macos_warn}",
         PyQt6.QtWebEngineCore.QWebEnginePage.Feature.MediaAudioCapture: "access your microphone?",
@@ -844,6 +849,8 @@ clear_history = QPushButton('Clear history')
 history_info = QLabel('Manage history')
 history_import = QPushButton('Import')
 history_export = QPushButton('Export')
+legacy_experimental_info = QLabel('Legacy/Experimental Features')
+legacy_pdf_viewer_button = QPushButton('Use legacy PDF viewer (PDFjs)')
 list_dl = QListWidget()
 msg_dl = QMessageBox()
 ext_list = QListWidget()
@@ -858,22 +865,18 @@ toggle_server = QPushButton('set server')
 
 #when compiled via pyinstaller search for the icon
 if getattr(sys, 'frozen', False):
-    if platform.system() == 'Darwin':
-        icon_path = join(sys._MEIPASS, 'chromium-mac.icns')
-    else:
-        icon_path = join(sys._MEIPASS, 'chromium.ico')
+    icon_path = join(sys._MEIPASS, 'chromium-mac.icns') if platform.system() == 'Darwin' else join(sys._MEIPASS, 'chromium.ico')
 else:
-    if platform.system() == 'Darwin':
-        icon_path = './chromium-mac.icns'
-    else:
-        icon_path = './chromium.ico'
+    icon_path = './chromium-mac.icns' if platform.system() == 'Darwin' else './chromium.ico'
 
 try_home()
+
 browser = QWebEngineView()
 if len(sys.argv) > 1:
     browser.load(QUrl(sys.argv[1]))
 else:
     browser.load(QUrl(homepage))
+
 home_browser = tabs.addTab(browser, 'Home')
 browser.titleChanged.connect(lambda title, index=home_browser: update_tab_title(index, title))
 
@@ -961,11 +964,10 @@ refresh.triggered.connect(refresh_handler)
 
 #Download handler
 QWebEngineProfile.defaultProfile().downloadRequested.connect(download_handler)
-
-#Permissions handler
 browser.page().featurePermissionRequested.connect(permissions_handler)
 
-QWebEngineProfile.defaultProfile().settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, True)
+QWebEngineProfile.defaultProfile().settings().setAttribute(QWebEngineSettings.WebAttribute.PdfViewerEnabled, not legacy_pdf_viewer)
+QWebEngineProfile.defaultProfile().settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
 
 
 #show the tabs
