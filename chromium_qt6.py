@@ -742,7 +742,7 @@ def about_handler():
     <h1>Py Chromium</h1>
     <p><strong> Version:</strong> {str(float(ver))[:1]+'.'+str(float(ver)).split(str(float(ver))[:1])[1]}</p>
     <p>A lightweight web browser built with Python and PyQt. </p>
-    <p><strong> © <a href='https://github.com/momo-AUX1'>Mohammed</a> 2024</strong></p>
+    <p><strong> © <a href='https://github.com/momo-AUX1'>MoonPower</a> 2024</strong></p>
     <p> Powered by:</p>
     <ul>
     <li>Python 3: <a href="https://www.python.org/"> https://www.python.org/</a></li>
