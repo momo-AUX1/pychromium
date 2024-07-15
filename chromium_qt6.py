@@ -143,7 +143,7 @@ def try_path():
     global path
     try:
         path = data['path']
-    except FileNotFoundError:
+    except:
         if os.name == 'nt': 
             path = os.path.join(os.path.expanduser('~'), 'Downloads')
         else:  
