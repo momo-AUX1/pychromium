@@ -1,5 +1,6 @@
 import PyQt6.QtWebEngineCore
 import PyQt6.sip
+import PyQt6
 from PyQt6.QtCore import QDir
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QToolBar, QLineEdit, QFileDialog, QListWidget, QWidget, QRadioButton, QVBoxLayout, QGridLayout, QLabel, QPushButton, QTabWidget, QMenu, QDialog, QTextBrowser, QTableWidget, QTableWidgetItem, QHeaderView, QHBoxLayout
 from PyQt6.QtGui import QIcon, QCursor, QKeySequence, QShortcut
@@ -52,11 +53,21 @@ if not exists('Icons'):
 """)
 
 extensions = []
-ver = 22.0
+ver = 22.2
 tab_num = 0
 checked_extensions = False
 legacy_pdf_viewer = False
 current_tab_index = -1  
+try:
+    data = json.loads(open('pychromium_data.json', 'r').read())
+except:
+    data = {}
+data['pychromium_version'] = ver
+data['host_os'] = platform.system()
+data['host_os_version'] = platform.release()
+data['host_cpu'] = platform.processor()
+data['host_python_version'] = platform.python_version()
+data['pychromium_qt_version'] = "Qt6" if PyQt6 is not None else "Qt5"
 valid_url_suffixes = [
     '.com', '.org', '.net', '.io', '.ai', '.co', '.edu', '.gov',
     '.uk', '.ru', '.in', '.de', '.fr', '.jp', '.nl', '.it', '.br', '.pl', '.ir',
@@ -123,8 +134,7 @@ def try_home():
     #checks for your current search engine
     global homepage
     try:
-        with open('home.stg', 'r') as f:
-            homepage = f.read()
+        homepage = data['homepage']
     except:
         homepage = "https://google.com/" 
 
@@ -132,8 +142,7 @@ def try_path():
     #checks for the download folder if changed
     global path
     try:
-        with open('path.stg', 'r') as f:
-            path = f.read()
+        path = data['path']
     except FileNotFoundError:
         if os.name == 'nt': 
             path = os.path.join(os.path.expanduser('~'), 'Downloads')
@@ -144,11 +153,10 @@ def try_theme():
     #checks if the theme is set
     global theme
     try:
-        with open('theme.stg', 'r') as f:
-            theme = f.read()
-            if "none" in theme:
-                theme = None
-    except FileNotFoundError:
+        theme = data['theme']
+        if "none" in theme:
+            theme = None
+    except:
         theme = None
 
 
@@ -195,14 +203,15 @@ def scan_extensions(content):
 def server_handler():
     #sets the server url for the update
     server_url = update_server.text()
-    with open("server.stg", "w") as f:
-        f.write(server_url)
+    data['server'] = server_url
+    with open('pychromium_data.json', 'w') as f:
+        f.write(json.dumps(data))
 
 def check_update():
     #tries to check for an update 
     global app
     try:
-        server = open("server.stg").read()
+        server = data['server']
         A = requests.post(server, json={'version': int(ver)})
         version = A.json().get('version')
     except:
@@ -268,15 +277,14 @@ def search_handler():
         # Treat the entered text as a search query
         query = url.replace(" ", "+")
         try:
-            with open("home.stg", "r") as f:
-                homepage = f.read().strip()
-                if "duckduckgo" in homepage:
-                    url = f"{homepage}/?q={query}"
-                elif "ecosia" in homepage:
-                    url = f"{homepage}/search?q={query}"
-                else:
-                    url = f"{homepage}/search?q={query}"
-        except FileNotFoundError:
+            homepage = data['homepage']
+            if "duckduckgo" in homepage:
+                url = f"{homepage}/?q={query}"
+            elif "ecosia" in homepage:
+                url = f"{homepage}/search?q={query}"
+            else:
+                url = f"{homepage}/search?q={query}"
+        except:
             url = f"{homepage}/search?q={query}"
 
     browser.setUrl(QUrl(url))
@@ -543,22 +551,24 @@ def path_picker():
     #downloads folder path if changed from normal
     folder_picker = QFileDialog.getExistingDirectory()
     if folder_picker:
-        with open('path.stg', 'w') as f:
-            f.write(folder_picker)
+        data['path'] = folder_picker
+        with open('pychromium_data.json', 'w') as f:
+            f.write(json.dumps(data))
 
 def engine_picker(home_path):
     #sets the search engine
-    with open('home.stg', 'w') as f:
-        f.write(home_path)
+    data['homepage'] = home_path
+    with open('pychromium_data.json', 'w') as f:
+        f.write(json.dumps(data))
 
 def theme_picker1():
-    with open('theme.stg', 'w') as f:
-        f.write('none')
+    data['theme'] = 'none'
+    with open('pychromium_data.json', 'w') as f:
+        f.write(json.dumps(data))
 
 def theme_picker2():
     #toggles dark mode
-    with open('theme.stg', 'w') as f:
-        f.write("""
+    data['theme'] = """
     QWidget {
         background-color: #2b2b2b;
         color: #ffffff;
@@ -566,7 +576,9 @@ def theme_picker2():
     QTabBar::tab {
         color: #2b2b2b;
     }
-    """)
+    """
+    with open('pychromium_data.json', 'w') as f:
+        f.write(json.dumps(data))
 
 def history_cleaner():
     #drops all history
@@ -742,7 +754,7 @@ def about_handler():
     <h1>Py Chromium</h1>
     <p><strong> Version:</strong> {str(float(ver))[:1]+'.'+str(float(ver)).split(str(float(ver))[:1])[1]}</p>
     <p>A lightweight web browser built with Python and PyQt. </p>
-    <p><strong> © <a href='https://github.com/momo-AUX1'>MoonPower</a> 2024</strong></p>
+    <p><strong> © <a href='https://github.com/momo-AUX1'>Mohammed</a> 2024</strong></p>
     <p> Powered by:</p>
     <ul>
     <li>Python 3: <a href="https://www.python.org/"> https://www.python.org/</a></li>
